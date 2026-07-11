@@ -1,0 +1,169 @@
+<view class="page ledger-page">
+  <view class="section panel hero">
+    <view class="hero-head">
+      <view>
+        <view class="hero-title">今日概览</view>
+        <view class="muted">{{today}}</view>
+      </view>
+      <button class="mini-link" bindtap="goProfile">预算</button>
+    </view>
+
+    <view class="summary-grid">
+      <view class="summary-item">
+        <text class="summary-label">今日收入</text>
+        <text class="summary-value amount-income">¥{{overview.incomeText}}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-label">今日支出</text>
+        <text class="summary-value amount-expense">¥{{overview.expenseText}}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-label">今日结余</text>
+        <text class="summary-value">¥{{overview.balanceText}}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-label">本月支出</text>
+        <text class="summary-value amount-expense">¥{{overview.monthExpenseText}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{budgetState.hasBudget}}" class="budget-box budget-{{budgetState.status}}">
+      <view class="budget-line">
+        <text>{{budgetState.message}}</text>
+        <text>{{budgetState.percent}}%</text>
+      </view>
+      <view class="progress-track">
+        <view class="progress-fill" style="width: {{budgetState.progressPercent}}%;"></view>
+      </view>
+      <view class="budget-detail">
+        <text>预算 ¥{{budgetState.amountText}}</text>
+        <text>剩余 ¥{{budgetState.remainingText}}</text>
+      </view>
+    </view>
+    <view wx:else class="budget-empty" bindtap="goProfile">本月未设置预算，点此设置</view>
+  </view>
+
+  <view class="section panel">
+    <view class="section-title">快速记一笔</view>
+    <view class="type-switch">
+      <view
+        wx:for="{{typeOptions}}"
+        wx:key="value"
+        class="type-option {{form.type === item.value ? 'active' : ''}}"
+        data-type="{{item.value}}"
+        bindtap="onTypeTap"
+      >
+        {{item.label}}
+      </view>
+    </view>
+
+    <view class="field">
+      <text class="field-label">金额</text>
+      <input class="input" type="digit" placeholder="0.00" value="{{form.amount}}" bindinput="onAmountInput" />
+    </view>
+
+    <view class="field-row">
+      <view class="field half">
+        <text class="field-label">分类</text>
+        <picker range="{{categories}}" bindchange="onCategoryChange">
+          <view class="input picker-value">{{form.category}}</view>
+        </picker>
+      </view>
+      <view class="field half">
+        <text class="field-label">日期</text>
+        <picker mode="date" value="{{form.date}}" bindchange="onDateChange">
+          <view class="input picker-value">{{form.date}}</view>
+        </picker>
+      </view>
+    </view>
+
+    <view class="field">
+      <text class="field-label">备注</text>
+      <input class="input" placeholder="可不填" maxlength="40" value="{{form.remark}}" bindinput="onRemarkInput" />
+    </view>
+
+    <button class="primary-button submit" bindtap="onSubmit">保存记录</button>
+  </view>
+
+  <view class="section panel">
+    <view class="section-title">今日记录</view>
+    <view wx:if="{{todayRecords.length === 0}}" class="empty">今天还没有记录</view>
+    <view wx:else class="record-list">
+      <view wx:for="{{todayRecords}}" wx:key="clientId" class="record-item">
+        <view class="record-main">
+          <view>
+            <text class="tag">{{item.typeLabel}}</text>
+            <text class="record-category">{{item.category}}</text>
+          </view>
+          <view class="{{item.type === 'income' ? 'amount-income' : 'amount-expense'}} record-amount">
+            {{item.type === 'income' ? '+' : '-'}}¥{{item.amountText}}
+          </view>
+        </view>
+        <view class="record-sub">
+          <text>{{item.remark || '无备注'}}</text>
+          <text>{{item.timeText || item.date}}</text>
+        </view>
+        <button class="delete-button" data-client-id="{{item.clientId}}" bindtap="onDeleteRecord">删除</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="section panel">
+    <view class="stat-head">
+      <view class="section-title">按日统计</view>
+      <picker mode="date" value="{{selectedDay}}" bindchange="onDayChange">
+        <view class="date-pill">{{selectedDay}}</view>
+      </picker>
+    </view>
+    <view class="stat-row">
+      <view>收入 <text class="amount-income">¥{{dayStats.incomeText}}</text></view>
+      <view>支出 <text class="amount-expense">¥{{dayStats.expenseText}}</text></view>
+      <view>结余 ¥{{dayStats.balanceText}}</view>
+    </view>
+    <view wx:if="{{dayStats.records.length === 0}}" class="empty small">当天无记录</view>
+    <view wx:else class="compact-list">
+      <view wx:for="{{dayStats.records}}" wx:key="clientId" class="compact-record">
+        <text>{{item.category}}</text>
+        <text class="{{item.type === 'income' ? 'amount-income' : 'amount-expense'}}">{{item.type === 'income' ? '+' : '-'}}¥{{item.amountText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section panel">
+    <view class="stat-head">
+      <view class="section-title">按月统计</view>
+      <picker mode="date" fields="month" value="{{selectedMonth}}" bindchange="onMonthChange">
+        <view class="date-pill">{{selectedMonth}}</view>
+      </picker>
+    </view>
+    <view class="stat-row">
+      <view>收入 <text class="amount-income">¥{{monthStats.incomeText}}</text></view>
+      <view>支出 <text class="amount-expense">¥{{monthStats.expenseText}}</text></view>
+      <view>结余 ¥{{monthStats.balanceText}}</view>
+    </view>
+
+    <view class="chart-title">每日支出趋势</view>
+    <scroll-view scroll-x class="trend-scroll">
+      <view class="trend-chart" style="width: {{monthStats.trendChartWidth}}rpx;">
+        <view wx:for="{{monthStats.trend}}" wx:key="date" class="trend-bar-wrap">
+          <view class="trend-bar" style="height: {{item.percent}}%;"></view>
+          <text class="trend-day">{{item.day}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="chart-title">支出分类占比</view>
+    <view wx:if="{{monthStats.categories.length === 0}}" class="empty small">本月暂无支出</view>
+    <view wx:else class="category-chart">
+      <view wx:for="{{monthStats.categories}}" wx:key="category" class="category-row">
+        <view class="category-info">
+          <text>{{item.category}}</text>
+          <text class="muted">¥{{item.amountText}} · {{item.percent}}%</text>
+        </view>
+        <view class="category-track">
+          <view class="category-fill" style="width: {{item.percent}}%;"></view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

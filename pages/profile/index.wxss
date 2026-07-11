@@ -1,0 +1,65 @@
+.user-panel {
+  padding-top: 34rpx;
+}
+
+.status-row,
+.month-line,
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-text {
+  margin-bottom: 10rpx;
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.status-dot {
+  width: 20rpx;
+  height: 20rpx;
+  background: #c4493a;
+  border-radius: 50%;
+}
+
+.status-dot.on {
+  background: #1f7a5b;
+}
+
+.action-button {
+  margin-top: 28rpx;
+}
+
+.month-line {
+  color: #59616c;
+}
+
+.budget-current {
+  margin-top: 18rpx;
+  color: #1f7a5b;
+  font-weight: 700;
+}
+
+.budget-input {
+  margin-top: 18rpx;
+}
+
+.info-row {
+  padding: 18rpx 0;
+  border-top: 1rpx solid #eef0f2;
+}
+
+.info-row:first-of-type {
+  border-top: 0;
+}
+
+.notice {
+  margin-top: 18rpx;
+  padding: 18rpx;
+  color: #6b737e;
+  background: #f6f7f9;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+}

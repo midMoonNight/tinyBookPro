@@ -1,0 +1,16 @@
+{
+  "description": "极简记账本 Pro MVP",
+  "setting": {
+    "urlCheck": true,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true
+  },
+  "compileType": "miniprogram",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "libVersion": "latest",
+  "appid": "touristappid",
+  "projectname": "tinyBookPro",
+  "condition": {}
+}

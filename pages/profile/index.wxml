@@ -1,0 +1,46 @@
+<view class="page profile-page">
+  <view class="section panel user-panel">
+    <view class="section-title">登录状态</view>
+    <view class="status-row">
+      <view>
+        <view class="status-text">{{statusText}}</view>
+        <view class="muted" wx:if="{{!isLoggedIn}}">当前数据仅保存在本机，登录后可同步保存。</view>
+        <view class="muted" wx:else>用户标识：{{user.userId}}</view>
+      </view>
+      <view class="status-dot {{isLoggedIn ? 'on' : ''}}"></view>
+    </view>
+
+    <button wx:if="{{!isLoggedIn}}" class="primary-button action-button" loading="{{syncing}}" bindtap="onLogin">微信一键登录</button>
+    <button wx:else class="secondary-button action-button" loading="{{syncing}}" bindtap="onSyncTap">同步本机数据</button>
+  </view>
+
+  <view class="section panel">
+    <view class="section-title">本月预算</view>
+    <view class="month-line">
+      <text>预算月份</text>
+      <text>{{currentMonth}}</text>
+    </view>
+    <view class="budget-current" wx:if="{{currentBudget}}">
+      当前预算：¥{{currentBudget.amount}}
+    </view>
+    <input class="input budget-input" type="digit" placeholder="输入本月总预算" value="{{budgetAmount}}" bindinput="onBudgetInput" />
+    <button class="primary-button action-button" bindtap="onSaveBudget">保存预算</button>
+  </view>
+
+  <view class="section panel">
+    <view class="section-title">数据同步</view>
+    <view class="info-row">
+      <text>本地有效记录</text>
+      <text>{{recordCount}} 条</text>
+    </view>
+    <view class="info-row">
+      <text>最近同步</text>
+      <text>{{lastSyncAt || '暂无'}}</text>
+    </view>
+    <view class="notice">小程序只处理你主动输入的记账数据，不读取微信支付账单。</view>
+  </view>
+
+  <view wx:if="{{isLoggedIn}}" class="section panel">
+    <button class="secondary-button danger-button" bindtap="onLogout">退出登录</button>
+  </view>
+</view>

@@ -1,0 +1,291 @@
+.hero {
+  background: #ffffff;
+}
+
+.hero-head,
+.budget-line,
+.budget-detail,
+.record-main,
+.record-sub,
+.stat-head,
+.compact-record,
+.category-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hero-title {
+  margin-bottom: 8rpx;
+  font-size: 40rpx;
+  font-weight: 800;
+}
+
+.mini-link {
+  width: 112rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  color: #1f7a5b;
+  background: #edf7f3;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18rpx;
+  margin-top: 28rpx;
+}
+
+.summary-item {
+  min-height: 132rpx;
+  padding: 22rpx;
+  background: #f8faf9;
+  border: 1rpx solid #edf0f1;
+  border-radius: 8rpx;
+}
+
+.summary-label {
+  display: block;
+  margin-bottom: 12rpx;
+  color: #737b86;
+  font-size: 24rpx;
+}
+
+.summary-value {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.budget-box,
+.budget-empty {
+  margin-top: 24rpx;
+  padding: 20rpx;
+  border-radius: 8rpx;
+}
+
+.budget-box {
+  background: #f4f8f6;
+}
+
+.budget-warning {
+  background: #fff8e6;
+}
+
+.budget-over {
+  background: #fff1ef;
+}
+
+.progress-track,
+.category-track {
+  overflow: hidden;
+  height: 12rpx;
+  background: #e1e5e9;
+  border-radius: 999rpx;
+}
+
+.progress-track {
+  margin: 18rpx 0;
+}
+
+.progress-fill,
+.category-fill {
+  height: 100%;
+  background: #1f7a5b;
+  border-radius: 999rpx;
+}
+
+.budget-warning .progress-fill {
+  background: #d99b22;
+}
+
+.budget-over .progress-fill {
+  background: #c4493a;
+}
+
+.budget-empty {
+  color: #1f7a5b;
+  background: #edf7f3;
+}
+
+.type-switch {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.type-option {
+  height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
+  color: #5e6670;
+  background: #f1f3f5;
+  border-radius: 8rpx;
+}
+
+.type-option.active {
+  color: #ffffff;
+  background: #1f7a5b;
+  font-weight: 700;
+}
+
+.field {
+  margin-top: 18rpx;
+}
+
+.field-row {
+  display: flex;
+  gap: 18rpx;
+}
+
+.field.half {
+  flex: 1;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 10rpx;
+  color: #59616c;
+  font-size: 24rpx;
+}
+
+.picker-value {
+  display: flex;
+  align-items: center;
+}
+
+.submit {
+  margin-top: 24rpx;
+}
+
+.empty {
+  padding: 32rpx 0;
+  color: #8a8f98;
+  text-align: center;
+}
+
+.empty.small {
+  padding: 20rpx 0 0;
+  font-size: 24rpx;
+}
+
+.record-item {
+  position: relative;
+  padding: 22rpx 0;
+  border-top: 1rpx solid #eef0f2;
+}
+
+.record-item:first-child {
+  border-top: 0;
+}
+
+.record-category {
+  margin-left: 14rpx;
+  font-weight: 700;
+}
+
+.record-amount {
+  padding-right: 108rpx;
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
+.record-sub {
+  margin-top: 12rpx;
+  padding-right: 108rpx;
+  color: #7a818c;
+  font-size: 24rpx;
+}
+
+.delete-button {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 88rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  color: #c4493a;
+  background: #fff1ef;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  transform: translateY(-50%);
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10rpx;
+  margin-top: 8rpx;
+  color: #4e5661;
+  font-size: 24rpx;
+}
+
+.date-pill {
+  min-width: 164rpx;
+  padding: 12rpx 16rpx;
+  color: #1f7a5b;
+  text-align: center;
+  background: #edf7f3;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+}
+
+.compact-record {
+  padding: 16rpx 0;
+  border-top: 1rpx solid #eef0f2;
+}
+
+.chart-title {
+  margin-top: 28rpx;
+  margin-bottom: 14rpx;
+  color: #333941;
+  font-weight: 700;
+}
+
+.trend-scroll {
+  width: 100%;
+}
+
+.trend-chart {
+  display: flex;
+  align-items: flex-end;
+  min-width: 100%;
+  height: 190rpx;
+  padding-top: 16rpx;
+  border-bottom: 1rpx solid #d8dde3;
+}
+
+.trend-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 34rpx;
+  height: 100%;
+  margin-right: 8rpx;
+}
+
+.trend-bar {
+  width: 18rpx;
+  min-height: 0;
+  background: #7bb59e;
+  border-radius: 6rpx 6rpx 0 0;
+}
+
+.trend-day {
+  margin-top: 8rpx;
+  color: #8a8f98;
+  font-size: 20rpx;
+}
+
+.category-row {
+  margin-top: 18rpx;
+}
+
+.category-info {
+  margin-bottom: 10rpx;
+  font-size: 24rpx;
+}

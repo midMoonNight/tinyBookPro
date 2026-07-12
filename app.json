@@ -7,11 +7,11 @@
     "navigationBarTitleText": "极简记账本 Pro",
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f6f7f9"
+    "backgroundColor": "#f2f2f7"
   },
   "tabBar": {
-    "color": "#8a8f98",
-    "selectedColor": "#1f7a5b",
+    "color": "#8e8e93",
+    "selectedColor": "#007aff",
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [

@@ -1,4 +1,4 @@
-const { RECORD_TYPES } = require('./constants')
+const { CATEGORY_ID_BY_TYPE_AND_NAME, RECORD_TYPES } = require('./constants')
 const { formatDate, formatMonth, getDaysInMonth, isSameDate, isSameMonth } = require('./date')
 
 function roundMoney(value) {
@@ -70,16 +70,27 @@ function buildMonthStats(records, month = formatMonth()) {
 
   const expenseRecords = monthRecords.filter((record) => record.type === RECORD_TYPES.EXPENSE)
   const categoryMap = expenseRecords.reduce((result, record) => {
-    result[record.category] = roundMoney((result[record.category] || 0) + Number(record.amount || 0))
+    const categoryName = record.categoryNameSnapshot || record.category || '未分类'
+    const categoryId = record.categoryId
+      || CATEGORY_ID_BY_TYPE_AND_NAME[`${record.type}:${categoryName}`]
+      || record.category
+      || 'unknown'
+    const current = result[categoryId] || {
+      category: categoryName,
+      amount: 0
+    }
+    current.amount = roundMoney(current.amount + Number(record.amount || 0))
+    result[categoryId] = current
     return result
   }, {})
   const expenseTotal = sumByType(monthRecords, RECORD_TYPES.EXPENSE)
   const categories = Object.keys(categoryMap)
-    .map((category) => ({
-      category,
-      amount: categoryMap[category],
-      amountText: formatMoney(categoryMap[category]),
-      percent: expenseTotal > 0 ? Math.round((categoryMap[category] / expenseTotal) * 1000) / 10 : 0
+    .map((categoryId) => ({
+      categoryId,
+      category: categoryMap[categoryId].category,
+      amount: categoryMap[categoryId].amount,
+      amountText: formatMoney(categoryMap[categoryId].amount),
+      percent: expenseTotal > 0 ? Math.round((categoryMap[categoryId].amount / expenseTotal) * 1000) / 10 : 0
     }))
     .sort((a, b) => b.amount - a.amount)
 

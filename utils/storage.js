@@ -111,6 +111,21 @@ function setUser(user) {
   wx.setStorageSync(KEYS.USER, user)
 }
 
+function updateUserProfile(profile) {
+  const user = getUser()
+  if (!user) {
+    return null
+  }
+
+  const nextUser = {
+    ...user,
+    ...profile,
+    updatedAt: new Date().toISOString()
+  }
+  setUser(nextUser)
+  return nextUser
+}
+
 function clearUser() {
   wx.removeStorageSync(KEYS.USER)
 }
@@ -153,5 +168,6 @@ module.exports = {
   setLastSyncAt,
   setRecords,
   setUser,
-  softDeleteRecord
+  softDeleteRecord,
+  updateUserProfile
 }

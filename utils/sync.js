@@ -3,6 +3,7 @@ const { getMonthRange } = require('./date')
 
 const RECORDS_COLLECTION = 'records'
 const BUDGETS_COLLECTION = 'budgets'
+const CATEGORIES_COLLECTION = 'categories'
 
 function isCloudReady() {
   const app = getApp()
@@ -18,13 +19,14 @@ function callLogin() {
   })
 }
 
-async function login() {
+async function login(profile = null) {
   const loginResult = await callLogin()
   const now = new Date().toISOString()
   const fallbackUser = {
     userId: `local_user_${loginResult.code || Date.now()}`,
     isCloudUser: false,
-    loggedInAt: now
+    loggedInAt: now,
+    ...normalizeProfile(profile)
   }
 
   if (!isCloudReady()) {
@@ -39,13 +41,48 @@ async function login() {
     const user = {
       userId: result.result && result.result.openid ? result.result.openid : fallbackUser.userId,
       isCloudUser: true,
-      loggedInAt: now
+      loggedInAt: now,
+      ...normalizeProfile(profile)
     }
     storage.setUser(user)
     return user
   } catch (error) {
+    console.error('[cloud] login failed', error)
     storage.setUser(fallbackUser)
     return fallbackUser
+  }
+}
+
+function normalizeProfile(profile) {
+  if (!profile) {
+    return {
+      nickName: '微信用户',
+      avatarUrl: ''
+    }
+  }
+
+  return {
+    nickName: profile.nickName || '微信用户',
+    avatarUrl: profile.avatarUrl || ''
+  }
+}
+
+async function fetchCategories() {
+  if (!isCloudReady()) {
+    return []
+  }
+
+  try {
+    const db = wx.cloud.database()
+    const result = await db.collection(CATEGORIES_COLLECTION)
+      .where({
+        isEnabled: true
+      })
+      .get()
+    return (result.data || []).sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0))
+  } catch (error) {
+    console.error('[cloud] category fetch failed', error)
+    return []
   }
 }
 
@@ -86,7 +123,10 @@ async function syncLocalToCloud(user) {
 
 async function createRecord(record, user) {
   if (!isCloudReady() || !user || !user.isCloudUser) {
-    return storage.addRecord(record)
+    return {
+      record: storage.addRecord(record),
+      cloudSynced: false
+    }
   }
 
   const nextRecord = storage.addRecord(record)
@@ -94,13 +134,17 @@ async function createRecord(record, user) {
     const db = wx.cloud.database()
     await upsertRecord(db, nextRecord, user)
     storage.setLastSyncAt(new Date().toISOString())
+    return {
+      record: nextRecord,
+      cloudSynced: true
+    }
   } catch (error) {
-    wx.showToast({
-      title: '已先保存到本地',
-      icon: 'none'
-    })
+    console.error('[cloud] record sync failed', error)
+    return {
+      record: nextRecord,
+      cloudSynced: false
+    }
   }
-  return nextRecord
 }
 
 async function saveBudget(month, amount, user) {
@@ -114,6 +158,7 @@ async function saveBudget(month, amount, user) {
     await upsertBudget(db, budget, user)
     storage.setLastSyncAt(new Date().toISOString())
   } catch (error) {
+    console.error('[cloud] budget sync failed', error)
     wx.showToast({
       title: '预算已先保存到本地',
       icon: 'none'
@@ -258,6 +303,7 @@ async function upsertBudget(db, budget, user) {
 module.exports = {
   createRecord,
   deleteRecord,
+  fetchCategories,
   fetchCurrentMonthFromCloud,
   login,
   saveBudget,

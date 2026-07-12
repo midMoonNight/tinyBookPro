@@ -11,10 +11,15 @@ Page({
     records: [],
     todayRecords: [],
     categories: EXPENSE_CATEGORIES,
+    categoryGroups: {
+      expense: EXPENSE_CATEGORIES,
+      income: INCOME_CATEGORIES
+    },
     form: {
       type: RECORD_TYPES.EXPENSE,
       amount: '',
-      category: EXPENSE_CATEGORIES[0],
+      categoryId: EXPENSE_CATEGORIES[0]._id,
+      categoryName: EXPENSE_CATEGORIES[0].name,
       date: '',
       remark: ''
     },
@@ -41,6 +46,25 @@ Page({
       selectedDay: today,
       selectedMonth: currentMonth,
       'form.date': today
+    })
+    this.loadCategories()
+  },
+
+  async loadCategories() {
+    const cloudCategories = await sync.fetchCategories()
+    const expenseCategories = cloudCategories.filter((item) => item.type === RECORD_TYPES.EXPENSE)
+    const incomeCategories = cloudCategories.filter((item) => item.type === RECORD_TYPES.INCOME)
+    const categoryGroups = {
+      expense: expenseCategories.length ? expenseCategories : EXPENSE_CATEGORIES,
+      income: incomeCategories.length ? incomeCategories : INCOME_CATEGORIES
+    }
+    const categories = categoryGroups[this.data.form.type]
+
+    this.setData({
+      categoryGroups,
+      categories,
+      'form.categoryId': categories[0]._id,
+      'form.categoryName': categories[0].name
     })
   },
 
@@ -85,6 +109,7 @@ Page({
   toDisplayRecord(record) {
     return {
       ...record,
+      categoryName: record.categoryNameSnapshot || record.category || '未分类',
       typeLabel: TYPE_LABELS[record.type],
       amountText: stats.formatMoney(record.amount),
       timeText: formatTimeText(record.createdAt)
@@ -93,11 +118,12 @@ Page({
 
   onTypeTap(event) {
     const type = event.currentTarget.dataset.type
-    const categories = type === RECORD_TYPES.EXPENSE ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
+    const categories = this.data.categoryGroups[type]
     this.setData({
       categories,
       'form.type': type,
-      'form.category': categories[0]
+      'form.categoryId': categories[0]._id,
+      'form.categoryName': categories[0].name
     })
   },
 
@@ -109,8 +135,10 @@ Page({
 
   onCategoryChange(event) {
     const index = Number(event.detail.value)
+    const category = this.data.categories[index]
     this.setData({
-      'form.category': this.data.categories[index]
+      'form.categoryId': category._id,
+      'form.categoryName': category.name
     })
   },
 
@@ -139,17 +167,18 @@ Page({
     }
 
     const user = storage.getUser()
-    await sync.createRecord({
+    const result = await sync.createRecord({
       type: form.type,
       amount,
-      category: form.category,
+      categoryId: form.categoryId,
+      categoryNameSnapshot: form.categoryName,
       date: form.date,
       remark: form.remark.trim()
     }, user)
 
     wx.showToast({
-      title: '已记录',
-      icon: 'success'
+      title: result.cloudSynced ? '已记录并同步' : '已记录，未同步云端',
+      icon: result.cloudSynced ? 'success' : 'none'
     })
 
     this.setData({

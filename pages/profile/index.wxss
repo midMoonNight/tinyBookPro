@@ -1,10 +1,41 @@
 .user-panel {
-  padding-top: 34rpx;
+  padding-top: 28rpx;
 }
 
-.status-row,
-.month-line,
-.info-row {
+.profile-row,
+.month-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profile-row {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.avatar {
+  width: 112rpx;
+  height: 112rpx;
+  margin-right: 24rpx;
+  border-radius: 50%;
+}
+
+.avatar.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8e8e93;
+  background: #f2f2f7;
+  font-size: 24rpx;
+}
+
+.profile-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.status-line {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -13,18 +44,12 @@
 .status-text {
   margin-bottom: 10rpx;
   font-size: 34rpx;
-  font-weight: 800;
+  font-weight: 600;
 }
 
-.status-dot {
-  width: 20rpx;
-  height: 20rpx;
-  background: #c4493a;
-  border-radius: 50%;
-}
-
-.status-dot.on {
-  background: #1f7a5b;
+.profile-main .muted {
+  white-space: nowrap;
+  font-size: 24rpx;
 }
 
 .action-button {
@@ -32,34 +57,24 @@
 }
 
 .month-line {
-  color: #59616c;
+  color: #636366;
 }
 
 .budget-current {
   margin-top: 18rpx;
-  color: #1f7a5b;
-  font-weight: 700;
+  color: #007aff;
+  font-weight: 600;
 }
 
 .budget-input {
   margin-top: 18rpx;
 }
 
-.info-row {
-  padding: 18rpx 0;
-  border-top: 1rpx solid #eef0f2;
-}
-
-.info-row:first-of-type {
-  border-top: 0;
-}
-
 .notice {
-  margin-top: 18rpx;
-  padding: 18rpx;
-  color: #6b737e;
-  background: #f6f7f9;
-  border-radius: 8rpx;
-  font-size: 24rpx;
-  line-height: 1.6;
+  margin: 0 0 24rpx;
+  padding: 0 6rpx;
+  color: #8e8e93;
+  font-size: 22rpx;
+  line-height: 1.4;
+  white-space: nowrap;
 }

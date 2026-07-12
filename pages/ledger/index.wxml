@@ -5,7 +5,6 @@
         <view class="hero-title">今日概览</view>
         <view class="muted">{{today}}</view>
       </view>
-      <button class="mini-link" bindtap="goProfile">预算</button>
     </view>
 
     <view class="summary-grid">
@@ -65,8 +64,8 @@
     <view class="field-row">
       <view class="field half">
         <text class="field-label">分类</text>
-        <picker range="{{categories}}" bindchange="onCategoryChange">
-          <view class="input picker-value">{{form.category}}</view>
+        <picker range="{{categories}}" range-key="name" bindchange="onCategoryChange">
+          <view class="input picker-value">{{form.categoryName}}</view>
         </picker>
       </view>
       <view class="field half">
@@ -90,20 +89,20 @@
     <view wx:if="{{todayRecords.length === 0}}" class="empty">今天还没有记录</view>
     <view wx:else class="record-list">
       <view wx:for="{{todayRecords}}" wx:key="clientId" class="record-item">
-        <view class="record-main">
-          <view>
+        <view class="record-content">
+          <view class="record-info">
             <text class="tag">{{item.typeLabel}}</text>
-            <text class="record-category">{{item.category}}</text>
+            <text class="record-category">{{item.categoryName}}</text>
+            <view class="record-remark">{{item.remark || '无备注'}}</view>
           </view>
-          <view class="{{item.type === 'income' ? 'amount-income' : 'amount-expense'}} record-amount">
-            {{item.type === 'income' ? '+' : '-'}}¥{{item.amountText}}
+          <view class="record-side">
+            <view class="{{item.type === 'income' ? 'amount-income' : 'amount-expense'}} record-amount">
+              {{item.type === 'income' ? '+' : '-'}}¥{{item.amountText}}
+            </view>
+            <view class="record-time">{{item.timeText || item.date}}</view>
+            <view class="delete-button" data-client-id="{{item.clientId}}" bindtap="onDeleteRecord">删除</view>
           </view>
         </view>
-        <view class="record-sub">
-          <text>{{item.remark || '无备注'}}</text>
-          <text>{{item.timeText || item.date}}</text>
-        </view>
-        <button class="delete-button" data-client-id="{{item.clientId}}" bindtap="onDeleteRecord">删除</button>
       </view>
     </view>
   </view>
@@ -123,7 +122,7 @@
     <view wx:if="{{dayStats.records.length === 0}}" class="empty small">当天无记录</view>
     <view wx:else class="compact-list">
       <view wx:for="{{dayStats.records}}" wx:key="clientId" class="compact-record">
-        <text>{{item.category}}</text>
+        <text>{{item.categoryName}}</text>
         <text class="{{item.type === 'income' ? 'amount-income' : 'amount-expense'}}">{{item.type === 'income' ? '+' : '-'}}¥{{item.amountText}}</text>
       </view>
     </view>

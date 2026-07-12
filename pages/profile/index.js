@@ -9,10 +9,10 @@ Page({
     currentMonth: '',
     budgetAmount: '',
     currentBudget: null,
-    lastSyncAt: '',
-    recordCount: 0,
     syncing: false,
-    statusText: '未登录'
+    statusText: '未登录',
+    profileName: '',
+    profileAvatar: ''
   },
 
   onLoad() {
@@ -29,16 +29,15 @@ Page({
     const user = storage.getUser()
     const currentMonth = this.data.currentMonth || formatMonth()
     const currentBudget = storage.getBudget(currentMonth)
-    const recordCount = storage.getActiveRecords().length
 
     this.setData({
       user,
       isLoggedIn: Boolean(user),
       currentBudget,
-      budgetAmount: currentBudget ? String(currentBudget.amount) : '',
-      lastSyncAt: storage.getLastSyncAt(),
-      recordCount,
-      statusText: user ? (user.isCloudUser ? '已登录，云端同步可用' : '已登录，本地演示模式') : '未登录'
+      budgetAmount: '',
+      statusText: user ? (user.nickName || '微信用户') : '未登录',
+      profileName: user && user.nickName ? user.nickName : '微信用户',
+      profileAvatar: user && user.avatarUrl ? user.avatarUrl : ''
     })
   },
 
@@ -64,6 +63,9 @@ Page({
       icon: 'success'
     })
     this.refresh()
+    this.setData({
+      budgetAmount: ''
+    })
   },
 
   async onLogin() {
@@ -76,25 +78,19 @@ Page({
     })
 
     try {
-      const user = await sync.login()
+      const profile = await this.getWeChatProfile()
+      let user = await sync.login(profile)
       this.refresh()
 
-      if (storage.getRecords().length > 0) {
-        wx.showModal({
-          title: '同步本机数据',
-          content: '检测到本机有未同步的记账记录，是否同步到当前账号？',
-          confirmText: '同步',
-          success: async (result) => {
-            if (result.confirm) {
-              await this.syncNow(user)
-              return
-            }
-
-            await this.fetchCloudData(user)
-          }
-        })
-      } else {
+      if (user.isCloudUser) {
+        user = storage.getUser()
+        await this.syncNow(user, true)
         await this.fetchCloudData(user)
+      } else {
+        wx.showToast({
+          title: '登录成功',
+          icon: 'none'
+        })
       }
     } catch (error) {
       wx.showToast({
@@ -108,29 +104,36 @@ Page({
     }
   },
 
-  async onSyncTap() {
-    const user = storage.getUser()
-    if (!user) {
-      wx.showToast({
-        title: '请先登录',
-        icon: 'none'
-      })
-      return
+  getWeChatProfile() {
+    if (!wx.getUserProfile) {
+      return Promise.resolve(null)
     }
 
-    await this.syncNow(user)
+    return new Promise((resolve) => {
+      wx.getUserProfile({
+        desc: '用于展示微信头像和昵称',
+        success: (result) => {
+          resolve(result.userInfo || null)
+        },
+        fail: () => {
+          resolve(null)
+        }
+      })
+    })
   },
 
-  async syncNow(user) {
+  async syncNow(user, silent = false) {
     this.setData({
       syncing: true
     })
     try {
       const result = await sync.syncLocalToCloud(user)
-      wx.showToast({
-        title: result.message,
-        icon: 'none'
-      })
+      if (!silent) {
+        wx.showToast({
+          title: result.message,
+          icon: 'none'
+        })
+      }
       this.refresh()
     } catch (error) {
       wx.showToast({
@@ -146,7 +149,13 @@ Page({
 
   async fetchCloudData(user) {
     try {
-      await sync.fetchCurrentMonthFromCloud(user, this.data.currentMonth)
+      const result = await sync.fetchCurrentMonthFromCloud(user, this.data.currentMonth)
+      if (result && result.fetched) {
+        wx.showToast({
+          title: '已同步',
+          icon: 'success'
+        })
+      }
       this.refresh()
     } catch (error) {
       wx.showToast({

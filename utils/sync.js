@@ -4,52 +4,50 @@ const { getMonthRange } = require('./date')
 const RECORDS_COLLECTION = 'records'
 const BUDGETS_COLLECTION = 'budgets'
 const CATEGORIES_COLLECTION = 'categories'
+const USERS_COLLECTION = 'users'
 
 function isCloudReady() {
   const app = getApp()
   return Boolean(app.globalData && app.globalData.cloudReady && wx.cloud)
 }
 
-function callLogin() {
-  return new Promise((resolve, reject) => {
-    wx.login({
-      success: resolve,
-      fail: reject
-    })
-  })
-}
-
 async function login(profile = null) {
-  const loginResult = await callLogin()
   const now = new Date().toISOString()
-  const fallbackUser = {
-    userId: `local_user_${loginResult.code || Date.now()}`,
-    isCloudUser: false,
-    loggedInAt: now,
-    ...normalizeProfile(profile)
-  }
 
   if (!isCloudReady()) {
-    storage.setUser(fallbackUser)
-    return fallbackUser
+    throw new Error('cloud is not ready')
   }
 
   try {
     const result = await wx.cloud.callFunction({
       name: 'login'
     })
+    const openid = result.result && result.result.openid
+    if (!openid) {
+      throw new Error('login cloud function did not return openid')
+    }
     const user = {
-      userId: result.result && result.result.openid ? result.result.openid : fallbackUser.userId,
+      userId: openid,
       isCloudUser: true,
       loggedInAt: now,
       ...normalizeProfile(profile)
     }
-    storage.setUser(user)
-    return user
+    let nextUser = user
+    try {
+      const cloudProfile = await upsertUser(wx.cloud.database(), user)
+      nextUser = {
+        ...user,
+        nickName: cloudProfile.nickName,
+        avatarUrl: cloudProfile.avatarUrl
+      }
+    } catch (error) {
+      console.error('[cloud] user profile sync failed', error)
+    }
+    storage.setUser(nextUser)
+    return nextUser
   } catch (error) {
     console.error('[cloud] login failed', error)
-    storage.setUser(fallbackUser)
-    return fallbackUser
+    throw error
   }
 }
 
@@ -65,6 +63,110 @@ function normalizeProfile(profile) {
     nickName: profile.nickName || '微信用户',
     avatarUrl: profile.avatarUrl || ''
   }
+}
+
+function hasCustomNickName(nickName) {
+  return Boolean(nickName && nickName !== '微信用户')
+}
+
+function normalizeNickname(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ')
+}
+
+function validateNickname(value) {
+  const nickName = normalizeNickname(value)
+  const length = Array.from(nickName).length
+  if (length < 1 || length > 20) {
+    throw new Error('nickname length must be between 1 and 20 characters')
+  }
+  if (/[\u0000-\u001f\u007f\u200b-\u200d\u2060\ufeff]/.test(nickName)) {
+    throw new Error('nickname contains unsupported characters')
+  }
+  return nickName
+}
+
+async function upsertUser(db, user) {
+  const result = await db.collection(USERS_COLLECTION)
+    .where({
+      userId: user.userId
+    })
+    .get()
+  const existing = result.data && result.data[0]
+  const now = new Date().toISOString()
+  const nickName = hasCustomNickName(user.nickName)
+    ? user.nickName
+    : (existing && existing.nickName) || '微信用户'
+  const avatarUrl = user.avatarUrl || (existing && existing.avatarUrl) || ''
+  const data = {
+    userId: user.userId,
+    nickName,
+    avatarUrl,
+    status: 'active',
+    lastLoginAt: now,
+    updatedAt: now
+  }
+
+  if (existing) {
+    await db.collection(USERS_COLLECTION).doc(existing._id).update({
+      data
+    })
+    return data
+  }
+
+  await db.collection(USERS_COLLECTION).add({
+    data: {
+      ...data,
+      createdAt: now
+    }
+  })
+  return data
+}
+
+async function updateUserProfile(user, profile) {
+  if (!isCloudReady() || !user || !user.isCloudUser) {
+    throw new Error('cloud user is required to update profile')
+  }
+
+  const normalized = normalizeProfile(profile)
+  const db = wx.cloud.database()
+  const result = await db.collection(USERS_COLLECTION)
+    .where({
+      userId: user.userId
+    })
+    .get()
+  const existing = result.data && result.data[0]
+  const now = new Date().toISOString()
+  const nextNickName = profile && profile.nickName
+    ? validateNickname(profile.nickName)
+    : ''
+  const data = {
+    nickName: hasCustomNickName(nextNickName)
+      ? nextNickName
+      : (existing && existing.nickName) || user.nickName || '微信用户',
+    avatarUrl: normalized.avatarUrl
+      || (existing && existing.avatarUrl)
+      || user.avatarUrl
+      || '',
+    updatedAt: now
+  }
+
+  if (existing) {
+    await db.collection(USERS_COLLECTION).doc(existing._id).update({
+      data
+    })
+  } else {
+    await db.collection(USERS_COLLECTION).add({
+      data: {
+        ...data,
+        userId: user.userId,
+        status: 'active',
+        createdAt: now,
+        lastLoginAt: user.loggedInAt || now
+      }
+    })
+  }
+
+  return storage.updateUserProfile(data)
 }
 
 async function fetchCategories() {
@@ -307,5 +409,6 @@ module.exports = {
   fetchCurrentMonthFromCloud,
   login,
   saveBudget,
-  syncLocalToCloud
+  syncLocalToCloud,
+  updateUserProfile
 }

@@ -30,6 +30,24 @@
   font-size: 24rpx;
 }
 
+.avatar-button {
+  width: 112rpx;
+  height: 112rpx;
+  margin: 0 24rpx 0 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 50%;
+  line-height: normal;
+}
+
+.avatar-button::after {
+  border: 0;
+}
+
+.avatar-button .avatar {
+  margin-right: 0;
+}
+
 .profile-main {
   flex: 1;
   min-width: 0;
@@ -45,6 +63,13 @@
   margin-bottom: 10rpx;
   font-size: 34rpx;
   font-weight: 600;
+}
+
+.profile-name-input {
+  width: 100%;
+  height: 54rpx;
+  padding: 0;
+  line-height: 54rpx;
 }
 
 .profile-main .muted {

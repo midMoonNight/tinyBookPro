@@ -1,13 +1,24 @@
 <view class="page profile-page">
   <view class="section panel user-panel">
     <view class="profile-row">
-      <image wx:if="{{isLoggedIn && profileAvatar}}" class="avatar" src="{{profileAvatar}}" mode="aspectFill" />
-      <view wx:elif="{{isLoggedIn}}" class="avatar placeholder">微信</view>
+      <button wx:if="{{isLoggedIn}}" class="avatar-button" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image wx:if="{{profileAvatar}}" class="avatar" src="{{profileAvatar}}" mode="aspectFill" />
+        <view wx:else class="avatar placeholder">微信</view>
+      </button>
       <view wx:else class="avatar placeholder">未登</view>
 
       <view class="profile-main">
         <view class="status-line">
-          <view class="status-text">{{isLoggedIn ? profileName : statusText}}</view>
+          <input
+            wx:if="{{isLoggedIn}}"
+            class="status-text profile-name-input"
+            type="nickname"
+            maxlength="20"
+            value="{{nicknameDraft}}"
+            bindinput="onNicknameInput"
+            bindnicknamereview="onNicknameReview"
+          />
+          <view wx:else class="status-text">{{statusText}}</view>
         </view>
         <view class="muted" wx:if="{{!isLoggedIn}}">当前数据仅保存在本机，登录后可同步保存。</view>
       </view>

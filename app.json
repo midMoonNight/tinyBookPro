@@ -17,11 +17,15 @@
     "list": [
       {
         "pagePath": "pages/ledger/index",
-        "text": "记账"
+        "text": "记账",
+        "iconPath": "images/账簿.png",
+        "selectedIconPath": "images/账簿-选中.png"
       },
       {
         "pagePath": "pages/profile/index",
-        "text": "我的"
+        "text": "我的",
+        "iconPath": "images/我的.png",
+        "selectedIconPath": "images/我的-选中.png"
       }
     ]
   },

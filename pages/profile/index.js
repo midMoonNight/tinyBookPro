@@ -10,9 +10,11 @@ Page({
     budgetAmount: '',
     currentBudget: null,
     syncing: false,
+    updatingProfile: false,
     statusText: '未登录',
     profileName: '',
-    profileAvatar: ''
+    profileAvatar: '',
+    nicknameDraft: ''
   },
 
   onLoad() {
@@ -37,7 +39,8 @@ Page({
       budgetAmount: '',
       statusText: user ? (user.nickName || '微信用户') : '未登录',
       profileName: user && user.nickName ? user.nickName : '微信用户',
-      profileAvatar: user && user.avatarUrl ? user.avatarUrl : ''
+      profileAvatar: user && user.avatarUrl ? user.avatarUrl : '',
+      nicknameDraft: user && user.nickName ? user.nickName : '微信用户'
     })
   },
 
@@ -82,19 +85,13 @@ Page({
       let user = await sync.login(profile)
       this.refresh()
 
-      if (user.isCloudUser) {
-        user = storage.getUser()
-        await this.syncNow(user, true)
-        await this.fetchCloudData(user)
-      } else {
-        wx.showToast({
-          title: '登录成功',
-          icon: 'none'
-        })
-      }
+      user = storage.getUser()
+      await this.syncNow(user, true)
+      await this.fetchCloudData(user)
     } catch (error) {
+      console.error('[cloud] login flow failed', error)
       wx.showToast({
-        title: '登录失败',
+        title: '登录失败，请重试',
         icon: 'none'
       })
     } finally {
@@ -120,6 +117,139 @@ Page({
         }
       })
     })
+  },
+
+  async onChooseAvatar(event) {
+    if (!this.data.isLoggedIn || this.data.updatingProfile) {
+      return
+    }
+
+    const user = storage.getUser()
+    if (!user || !user.isCloudUser) {
+      wx.showToast({
+        title: '请重新登录后更新资料',
+        icon: 'none'
+      })
+      return
+    }
+
+    try {
+      const tempFilePath = event.detail.avatarUrl
+      if (!tempFilePath) {
+        return
+      }
+
+      this.setData({
+        updatingProfile: true
+      })
+      const extension = tempFilePath.split('.').pop() || 'jpg'
+      const uploadResult = await wx.cloud.uploadFile({
+        cloudPath: `avatars/${user.userId}/${Date.now()}.${extension}`,
+        filePath: tempFilePath
+      })
+      await sync.updateUserProfile(user, {
+        avatarUrl: uploadResult.fileID
+      })
+      this.refresh()
+      wx.showToast({
+        title: '头像已更新',
+        icon: 'success'
+      })
+    } catch (error) {
+      console.error('[cloud] avatar update failed', error)
+      wx.showToast({
+        title: '头像更新失败',
+        icon: 'none'
+      })
+    } finally {
+      this.setData({
+        updatingProfile: false
+      })
+    }
+  },
+
+  onNicknameInput(event) {
+    this.setData({
+      nicknameDraft: event.detail.value
+    })
+  },
+
+  normalizeNickname(value) {
+    return String(value || '').trim().replace(/\s+/g, ' ')
+  },
+
+  validateNickname(nickName) {
+    const length = Array.from(nickName).length
+    if (length < 1 || length > 20) {
+      return '昵称长度需为 1-20 个字符'
+    }
+    if (/[\u0000-\u001f\u007f\u200b-\u200d\u2060\ufeff]/.test(nickName)) {
+      return '昵称包含不支持的字符'
+    }
+    return ''
+  },
+
+  async onNicknameReview(event) {
+    const nickName = this.normalizeNickname(this.data.nicknameDraft)
+    const user = storage.getUser()
+    if (!nickName || !user || !user.isCloudUser || nickName === user.nickName) {
+      this.setData({
+        nicknameDraft: user && user.nickName ? user.nickName : '微信用户'
+      })
+      return
+    }
+
+    const validationMessage = this.validateNickname(nickName)
+    if (validationMessage) {
+      this.setData({
+        nicknameDraft: user.nickName || '微信用户'
+      })
+      wx.showToast({
+        title: validationMessage,
+        icon: 'none'
+      })
+      return
+    }
+
+    if (event.detail.timeout) {
+      this.setData({
+        nicknameDraft: user.nickName || '微信用户'
+      })
+      wx.showToast({
+        title: '昵称审核超时，请重试',
+        icon: 'none'
+      })
+      return
+    }
+
+    if (!event.detail.pass) {
+      this.setData({
+        nicknameDraft: user.nickName || '微信用户'
+      })
+      wx.showToast({
+        title: '昵称未通过微信审核',
+        icon: 'none'
+      })
+      return
+    }
+
+    try {
+      await sync.updateUserProfile(user, {
+        nickName
+      })
+      this.refresh()
+      wx.showToast({
+        title: '昵称已更新',
+        icon: 'success'
+      })
+    } catch (error) {
+      console.error('[cloud] nickname update failed', error)
+      this.refresh()
+      wx.showToast({
+        title: '昵称更新失败',
+        icon: 'none'
+      })
+    }
   },
 
   async syncNow(user, silent = false) {

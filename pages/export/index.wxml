@@ -1,0 +1,10 @@
+<view class="page export-page">
+  <view class="panel export-panel">
+    <view class="section-title">选择导出月份</view>
+    <picker mode="date" fields="month" start="{{minMonth}}" end="{{maxMonth}}" value="{{month}}" bindchange="onMonthChange">
+      <view class="month-control">{{month}}</view>
+    </picker>
+    <view class="export-note">每次导出一个自然月，可选择最近两年内的月份。文件包含该月全部有效账单，不包含账号和内部同步字段。</view>
+    <button class="primary-button export-button" loading="{{exporting}}" bindtap="exportCsv">导出 CSV</button>
+  </view>
+</view>

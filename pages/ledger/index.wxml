@@ -85,11 +85,12 @@
   </view>
 
   <view class="section panel">
-    <view class="section-title">今日记录</view>
-    <view wx:if="{{todayRecords.length === 0}}" class="empty">今天还没有记录</view>
+    <view class="record-section-head"><view class="section-title">最近记录</view><view class="all-records-link" bindtap="goAllRecords">全部</view></view>
+    <view wx:if="{{recentRecords.length === 0}}" class="empty">还没有记录</view>
     <view wx:else class="record-list">
-      <view wx:for="{{todayRecords}}" wx:key="clientId" class="record-item">
+      <view wx:for="{{recentRecords}}" wx:key="clientId" class="record-item" data-client-id="{{item.clientId}}" bindtap="onRecordTap">
         <view class="record-content">
+          <view class="category-icon" style="background: {{item.categoryBackground}};"><image src="{{item.categoryIconPath}}" mode="aspectFit" /></view>
           <view class="record-info">
             <text class="tag">{{item.typeLabel}}</text>
             <text class="record-category">{{item.categoryName}}</text>
@@ -99,8 +100,8 @@
             <view class="{{item.type === 'income' ? 'amount-income' : 'amount-expense'}} record-amount">
               {{item.type === 'income' ? '+' : '-'}}¥{{item.amountText}}
             </view>
-            <view class="record-time">{{item.timeText || item.date}}</view>
-            <view class="delete-button" data-client-id="{{item.clientId}}" bindtap="onDeleteRecord">删除</view>
+            <view class="record-time">{{item.displayDateTime}}</view>
+            <view class="delete-button" data-client-id="{{item.clientId}}" catchtap="onDeleteRecord">删除</view>
           </view>
         </view>
       </view>
@@ -140,6 +141,12 @@
       <view>支出 <text class="amount-expense">¥{{monthStats.expenseText}}</text></view>
       <view>结余 ¥{{monthStats.balanceText}}</view>
     </view>
+    <view class="month-count">共 {{monthStats.recordCount}} 笔</view>
+    <view class="comparison-grid">
+      <view class="comparison-item"><text>收入较上月</text><text class="amount-income">{{monthComparison.incomeAmountText}} · {{monthComparison.incomePercentText}}</text></view>
+      <view class="comparison-item"><text>支出较上月</text><text class="amount-expense">{{monthComparison.expenseAmountText}} · {{monthComparison.expensePercentText}}</text></view>
+      <view class="comparison-item full"><text>结余较上月</text><text>{{monthComparison.balanceDifferenceText}}</text></view>
+    </view>
 
     <view class="chart-title">每日支出趋势</view>
     <scroll-view scroll-x class="trend-scroll">
@@ -154,15 +161,28 @@
     <view class="chart-title">支出分类占比</view>
     <view wx:if="{{monthStats.categories.length === 0}}" class="empty small">本月暂无支出</view>
     <view wx:else class="category-chart">
-      <view wx:for="{{monthStats.categories}}" wx:key="category" class="category-row">
+      <view wx:for="{{monthStats.categories}}" wx:key="categoryId" class="category-row" data-category-id="{{item.categoryId}}" bindtap="goCategoryRecords">
         <view class="category-info">
-          <text>{{item.category}}</text>
+          <view class="category-chart-name"><view class="chart-category-icon" style="background: {{item.background}};"><image src="{{item.iconPath}}" mode="aspectFit" /></view><text>{{item.category}}</text></view>
           <text class="muted">¥{{item.amountText}} · {{item.percent}}%</text>
         </view>
         <view class="category-track">
-          <view class="category-fill" style="width: {{item.percent}}%;"></view>
+          <view class="category-fill" style="width: {{item.percent}}%; background: {{item.foreground}};"></view>
         </view>
       </view>
+    </view>
+  </view>
+
+  <view wx:if="{{editVisible}}" class="sheet-mask" bindtap="onCloseEdit">
+    <view class="edit-sheet" catchtap="stopPropagation">
+      <view class="sheet-head"><view class="sheet-title">编辑账单</view><view class="sheet-close" bindtap="onCloseEdit">×</view></view>
+      <view class="field"><text class="field-label">金额</text><input class="input" type="digit" value="{{editForm.amount}}" bindinput="onEditAmountInput" /></view>
+      <view class="field-row">
+        <view class="field half"><text class="field-label">分类</text><picker range="{{editCategories}}" range-key="name" bindchange="onEditCategoryChange"><view class="input picker-value">{{editForm.categoryName}}</view></picker></view>
+        <view class="field half"><text class="field-label">日期</text><picker mode="date" value="{{editForm.date}}" bindchange="onEditDateChange"><view class="input picker-value">{{editForm.date}}</view></picker></view>
+      </view>
+      <view class="field"><text class="field-label">备注</text><input class="input" maxlength="40" value="{{editForm.remark}}" bindinput="onEditRemarkInput" /></view>
+      <button class="primary-button sheet-save" bindtap="onSaveEdit">保存修改</button>
     </view>
   </view>
 </view>

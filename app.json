@@ -1,7 +1,10 @@
 {
   "pages": [
     "pages/ledger/index",
-    "pages/profile/index"
+    "pages/profile/index",
+    "pages/records/index",
+    "pages/categories/index",
+    "pages/export/index"
   ],
   "window": {
     "navigationBarTitleText": "极简记账本 Pro",

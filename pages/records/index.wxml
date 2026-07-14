@@ -1,0 +1,66 @@
+<view class="page records-page">
+  <view class="panel filters-panel">
+    <view class="range-switch">
+      <view class="range-option {{filters.range === 'month' ? 'active' : ''}}" data-range="month" bindtap="onRangeTap">本月</view>
+      <view class="range-option {{filters.range === 'lastMonth' ? 'active' : ''}}" data-range="lastMonth" bindtap="onRangeTap">上月</view>
+      <view class="range-option {{filters.range === 'threeMonths' ? 'active' : ''}}" data-range="threeMonths" bindtap="onRangeTap">近3月</view>
+    </view>
+    <view class="date-filter-row">
+      <picker mode="date" start="{{startDateMin}}" end="{{startDateMax}}" value="{{filters.startDate}}" bindchange="onStartDateChange"><view class="filter-control">{{filters.startDate}}</view></picker>
+      <text class="date-separator">至</text>
+      <picker mode="date" start="{{endDateMin}}" end="{{endDateMax}}" value="{{filters.endDate}}" bindchange="onEndDateChange"><view class="filter-control">{{filters.endDate}}</view></picker>
+    </view>
+    <view class="type-filter-row">
+      <view class="filter-chip {{filters.type === '' ? 'active' : ''}}" data-type="" bindtap="onTypeFilterTap">全部</view>
+      <view class="filter-chip {{filters.type === 'expense' ? 'active' : ''}}" data-type="expense" bindtap="onTypeFilterTap">支出</view>
+      <view class="filter-chip {{filters.type === 'income' ? 'active' : ''}}" data-type="income" bindtap="onTypeFilterTap">收入</view>
+      <picker
+        class="category-filter"
+        mode="multiSelector"
+        range="{{categoryCascadeRange}}"
+        value="{{categoryCascadeValue}}"
+        bindcolumnchange="onCategoryCascadeColumnChange"
+        bindchange="onCategoryFilterChange"
+      >
+        <view class="filter-control category-control">{{filters.categoryName}}</view>
+      </picker>
+    </view>
+    <view class="search-row">
+      <input class="search-input" placeholder="搜索备注" value="{{filters.keyword}}" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onKeywordConfirm" />
+      <view class="reset-link" bindtap="onResetFilters">重置</view>
+    </view>
+  </view>
+
+  <view wx:if="{{groups.length === 0 && !loading}}" class="panel records-empty">没有符合条件的账单</view>
+  <view wx:for="{{groups}}" wx:key="date" class="panel record-group">
+    <view class="group-head">
+      <text class="group-date">{{item.date}}</text>
+      <view class="group-summary">
+        <text class="amount-income">收 ¥{{item.incomeText}}</text>
+        <text class="amount-expense">支 ¥{{item.expenseText}}</text>
+      </view>
+    </view>
+    <view wx:for="{{item.records}}" wx:for-item="record" wx:key="clientId" class="history-record" data-client-id="{{record.clientId}}" bindtap="onRecordTap">
+      <view class="category-icon" style="background: {{record.categoryBackground}};"><image src="{{record.categoryIconPath}}" mode="aspectFit" /></view>
+      <view class="history-main">
+        <view class="history-title">{{record.categoryName}}</view>
+        <view class="history-remark">{{record.remark || '无备注'}} · {{record.timeText}}</view>
+      </view>
+      <view class="history-amount {{record.type === 'income' ? 'amount-income' : 'amount-expense'}}">{{record.type === 'income' ? '+' : '-'}}¥{{record.amountText}}</view>
+    </view>
+  </view>
+  <view class="load-state">{{loading ? '正在加载…' : (hasMore ? '上拉加载更多' : '已加载全部')}}</view>
+
+  <view wx:if="{{editVisible}}" class="sheet-mask" bindtap="onCloseEdit">
+    <view class="edit-sheet" catchtap="stopPropagation">
+      <view class="sheet-head"><view class="sheet-title">编辑账单</view><view class="sheet-close" bindtap="onCloseEdit">×</view></view>
+      <view class="field"><text class="field-label">金额</text><input class="input" type="digit" value="{{editForm.amount}}" bindinput="onEditAmountInput" /></view>
+      <view class="field-row">
+        <view class="field half"><text class="field-label">分类</text><picker range="{{editCategories}}" range-key="name" bindchange="onEditCategoryChange"><view class="input picker-value">{{editForm.categoryName}}</view></picker></view>
+        <view class="field half"><text class="field-label">日期</text><picker mode="date" value="{{editForm.date}}" bindchange="onEditDateChange"><view class="input picker-value">{{editForm.date}}</view></picker></view>
+      </view>
+      <view class="field"><text class="field-label">备注</text><input class="input" maxlength="40" value="{{editForm.remark}}" bindinput="onEditRemarkInput" /></view>
+      <button class="primary-button sheet-save" bindtap="onSaveEdit">保存修改</button>
+    </view>
+  </view>
+</view>

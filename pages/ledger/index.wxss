@@ -13,6 +13,19 @@
   justify-content: space-between;
 }
 
+.record-section-head,
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.all-records-link {
+  margin-bottom: 18rpx;
+  color: #007aff;
+  font-size: 26rpx;
+}
+
 .hero-title {
   margin-bottom: 8rpx;
   font-size: 40rpx;
@@ -180,6 +193,21 @@
   gap: 18rpx;
 }
 
+.category-icon {
+  display: flex;
+  flex: 0 0 68rpx;
+  align-items: center;
+  justify-content: center;
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 50%;
+}
+
+.category-icon image {
+  width: 42rpx;
+  height: 42rpx;
+}
+
 .record-info {
   flex: 1;
   min-width: 0;
@@ -237,6 +265,12 @@
   color: #636366;
   font-size: 24rpx;
 }
+
+.month-count { margin-top: 12rpx; color: #8e8e93; font-size: 23rpx; }
+.comparison-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12rpx; margin-top: 18rpx; }
+.comparison-item { display: flex; flex-direction: column; gap: 8rpx; padding: 16rpx; color: #636366; background: #f7f7fa; border-radius: 12rpx; font-size: 22rpx; }
+.comparison-item text:last-child { color: #1d1d1f; font-weight: 600; }
+.comparison-item.full { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; }
 
 .date-pill {
   min-width: 164rpx;
@@ -304,3 +338,14 @@
   margin-bottom: 10rpx;
   font-size: 24rpx;
 }
+
+.category-chart-name { display: flex; align-items: center; gap: 10rpx; }
+.chart-category-icon { display: flex; align-items: center; justify-content: center; width: 44rpx; height: 44rpx; border-radius: 50%; }
+.chart-category-icon image { width: 28rpx; height: 28rpx; }
+
+.sheet-mask { position: fixed; z-index: 20; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: flex-end; background: rgba(0,0,0,.35); }
+.edit-sheet { width: 100%; max-height: 88vh; padding: 28rpx 28rpx calc(32rpx + env(safe-area-inset-bottom)); overflow-y: auto; background: #fff; border-radius: 24rpx 24rpx 0 0; }
+.sheet-head { margin-bottom: 22rpx; }
+.sheet-title { font-size: 34rpx; font-weight: 600; }
+.sheet-close { width: 52rpx; height: 52rpx; color: #8e8e93; text-align: center; line-height: 48rpx; background: #f2f2f7; border-radius: 50%; font-size: 40rpx; }
+.sheet-save { margin-top: 28rpx; }

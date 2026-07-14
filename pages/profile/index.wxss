@@ -103,3 +103,10 @@
   line-height: 1.4;
   white-space: nowrap;
 }
+
+.settings-panel { padding-top: 0; padding-bottom: 0; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; min-height: 116rpx; border-bottom: 1rpx solid #e5e5ea; }
+.setting-row:last-child { border-bottom: 0; }
+.setting-title { font-weight: 600; }
+.setting-desc { margin-top: 7rpx; color: #8e8e93; font-size: 23rpx; }
+.setting-arrow { color: #c7c7cc; font-size: 48rpx; font-weight: 300; }

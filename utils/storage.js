@@ -1,4 +1,5 @@
 const { createClientId } = require('./id')
+const { CATEGORY_ID_BY_TYPE_AND_NAME } = require('./constants')
 const { formatMonth } = require('./date')
 
 const KEYS = {
@@ -21,7 +22,25 @@ function getRecords() {
 }
 
 function setRecords(records) {
-  setArray(KEYS.RECORDS, records)
+  const map = (records || []).map(normalizeRecord).reduce((result, record) => {
+    const existing = result[record.clientId]
+    if (!existing || record.syncStatus === 'pending' || existing.syncStatus !== 'pending') {
+      result[record.clientId] = record
+    }
+    return result
+  }, {})
+  setArray(KEYS.RECORDS, Object.values(map))
+}
+
+function normalizeRecord(record) {
+  const categoryName = record.categoryNameSnapshot || record.category || '未分类'
+  return {
+    ...record,
+    clientId: record.clientId || record.id || record._id || createClientId(),
+    categoryId: record.categoryId || CATEGORY_ID_BY_TYPE_AND_NAME[`${record.type}:${categoryName}`] || record.categoryId,
+    categoryNameSnapshot: categoryName,
+    amount: Number(record.amount || 0)
+  }
 }
 
 function getActiveRecords() {
@@ -34,6 +53,7 @@ function addRecord(record) {
     ...record,
     clientId: record.clientId || createClientId(),
     amount: Number(record.amount),
+    syncStatus: record.syncStatus || 'pending',
     createdAt: record.createdAt || now,
     updatedAt: now
   }
@@ -53,30 +73,68 @@ function softDeleteRecord(clientId) {
     return {
       ...record,
       deletedAt: now,
+      syncStatus: 'pending',
       updatedAt: now
     }
   })
   setRecords(records)
 }
 
-function ensureRecordClientIds() {
-  const records = getRecords()
-  let changed = false
-  const nextRecords = records.map((record) => {
-    if (record.clientId) {
+function updateRecord(clientId, changes) {
+  const now = new Date().toISOString()
+  let updatedRecord = null
+  const records = getRecords().map((record) => {
+    if (record.clientId !== clientId) {
       return record
     }
 
-    changed = true
-    return {
+    updatedRecord = {
       ...record,
-      clientId: createClientId()
+      ...changes,
+      clientId: record.clientId,
+      createdAt: record.createdAt,
+      amount: Number(changes.amount === undefined ? record.amount : changes.amount),
+      updatedAt: now
     }
+    return updatedRecord
   })
+  setRecords(records)
+  return updatedRecord
+}
 
-  if (changed) {
-    setRecords(nextRecords)
-  }
+function mergeRecords(nextRecords) {
+  const map = getRecords().reduce((result, record) => {
+    result[record.clientId] = record
+    return result
+  }, {})
+  ;(nextRecords || []).forEach((record) => {
+    if (record.id) {
+      const duplicateKey = Object.keys(map).find((key) => map[key].id === record.id)
+      if (duplicateKey && duplicateKey !== record.clientId) {
+        delete map[duplicateKey]
+      }
+    }
+    const existing = map[record.clientId]
+    map[record.clientId] = existing && existing.syncStatus === 'pending'
+      ? existing
+      : record
+  })
+  setRecords(Object.values(map).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))))
+}
+
+function setRecordSyncStatus(clientId, syncStatus) {
+  const records = getRecords().map((record) => record.clientId === clientId
+    ? { ...record, syncStatus }
+    : record)
+  setRecords(records)
+}
+
+function setAllRecordsSyncStatus(syncStatus) {
+  setRecords(getRecords().map((record) => ({ ...record, syncStatus })))
+}
+
+function ensureRecordClientIds() {
+  setRecords(getRecords())
 }
 
 function getBudgets() {
@@ -163,11 +221,16 @@ module.exports = {
   getLastSyncAt,
   getRecords,
   getUser,
+  mergeRecords,
+  normalizeRecord,
   replaceCachedData,
+  setAllRecordsSyncStatus,
   setBudget,
   setLastSyncAt,
+  setRecordSyncStatus,
   setRecords,
   setUser,
   softDeleteRecord,
+  updateRecord,
   updateUserProfile
 }

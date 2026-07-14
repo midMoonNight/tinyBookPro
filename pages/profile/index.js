@@ -313,5 +313,21 @@ Page({
         })
       }
     })
+  },
+
+  goCategories() {
+    if (!this.data.isLoggedIn) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    wx.navigateTo({ url: '/pages/categories/index' })
+  },
+
+  goExport() {
+    if (!this.data.isLoggedIn) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    wx.navigateTo({ url: '/pages/export/index' })
   }
 })

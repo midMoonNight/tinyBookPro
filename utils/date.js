@@ -46,6 +46,11 @@ function formatTimeText(value) {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+function shiftMonth(month, offset) {
+  const [year, monthIndex] = month.split('-').map(Number)
+  return formatMonth(new Date(year, monthIndex - 1 + offset, 1))
+}
+
 module.exports = {
   formatDate,
   formatMonth,
@@ -53,5 +58,6 @@ module.exports = {
   getDaysInMonth,
   getMonthRange,
   isSameDate,
-  isSameMonth
+  isSameMonth,
+  shiftMonth
 }

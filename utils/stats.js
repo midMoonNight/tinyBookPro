@@ -97,6 +97,7 @@ function buildMonthStats(records, month = formatMonth()) {
   return {
     month,
     records: monthRecords,
+    recordCount: monthRecords.length,
     trend: trendWithPercent,
     categories,
     ...buildSummary(monthRecords)

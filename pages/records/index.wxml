@@ -6,10 +6,11 @@
       <view class="range-option {{filters.range === 'threeMonths' ? 'active' : ''}}" data-range="threeMonths" bindtap="onRangeTap">近3月</view>
     </view>
     <view class="date-filter-row">
-      <picker mode="date" start="{{startDateMin}}" end="{{startDateMax}}" value="{{filters.startDate}}" bindchange="onStartDateChange"><view class="filter-control">{{filters.startDate}}</view></picker>
+      <picker mode="date" value="{{filters.startDate}}" bindchange="onStartDateChange"><view class="filter-control {{dateRangeError ? 'input-error' : ''}}">{{filters.startDate}}</view></picker>
       <text class="date-separator">至</text>
-      <picker mode="date" start="{{endDateMin}}" end="{{endDateMax}}" value="{{filters.endDate}}" bindchange="onEndDateChange"><view class="filter-control">{{filters.endDate}}</view></picker>
+      <picker mode="date" value="{{filters.endDate}}" bindchange="onEndDateChange"><view class="filter-control {{dateRangeError ? 'input-error' : ''}}">{{filters.endDate}}</view></picker>
     </view>
+    <view wx:if="{{dateRangeError}}" class="date-range-error">{{dateRangeError}}</view>
     <view class="type-filter-row">
       <view class="filter-chip {{filters.type === '' ? 'active' : ''}}" data-type="" bindtap="onTypeFilterTap">全部</view>
       <view class="filter-chip {{filters.type === 'expense' ? 'active' : ''}}" data-type="expense" bindtap="onTypeFilterTap">支出</view>
@@ -59,7 +60,7 @@
         <view class="field half"><text class="field-label">分类</text><picker range="{{editCategories}}" range-key="name" bindchange="onEditCategoryChange"><view class="input picker-value">{{editForm.categoryName}}</view></picker></view>
         <view class="field half"><text class="field-label">日期</text><picker mode="date" value="{{editForm.date}}" bindchange="onEditDateChange"><view class="input picker-value">{{editForm.date}}</view></picker></view>
       </view>
-      <view class="field"><text class="field-label">备注</text><input class="input" maxlength="40" value="{{editForm.remark}}" bindinput="onEditRemarkInput" /></view>
+      <view class="field"><text class="field-label">备注</text><input class="input {{editRemarkLength > 40 ? 'input-error' : ''}}" maxlength="-1" value="{{editForm.remark}}" bindinput="onEditRemarkInput" /><view class="field-count {{editRemarkLength > 40 ? 'over' : ''}}">{{editRemarkLength}}/40</view></view>
       <button class="primary-button sheet-save" bindtap="onSaveEdit">保存修改</button>
     </view>
   </view>

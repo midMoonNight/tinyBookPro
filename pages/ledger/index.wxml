@@ -78,7 +78,8 @@
 
     <view class="field">
       <text class="field-label">备注</text>
-      <input class="input" placeholder="可不填" maxlength="40" value="{{form.remark}}" bindinput="onRemarkInput" />
+      <input class="input {{remarkLength > 40 ? 'input-error' : ''}}" placeholder="可不填" maxlength="-1" value="{{form.remark}}" bindinput="onRemarkInput" />
+      <view class="field-count {{remarkLength > 40 ? 'over' : ''}}">{{remarkLength}}/40</view>
     </view>
 
     <button class="primary-button submit" bindtap="onSubmit">保存记录</button>
@@ -118,7 +119,7 @@
     <view class="stat-row">
       <view>收入 <text class="amount-income">¥{{dayStats.incomeText}}</text></view>
       <view>支出 <text class="amount-expense">¥{{dayStats.expenseText}}</text></view>
-      <view>结余 ¥{{dayStats.balanceText}}</view>
+      <view>当日结余 <text>¥{{dayStats.balanceText}}</text></view>
     </view>
     <view wx:if="{{dayStats.records.length === 0}}" class="empty small">当天无记录</view>
     <view wx:else class="compact-list">
@@ -139,7 +140,7 @@
     <view class="stat-row">
       <view>收入 <text class="amount-income">¥{{monthStats.incomeText}}</text></view>
       <view>支出 <text class="amount-expense">¥{{monthStats.expenseText}}</text></view>
-      <view>结余 ¥{{monthStats.balanceText}}</view>
+      <view>本月结余 <text>¥{{monthStats.balanceText}}</text></view>
     </view>
     <view class="month-count">共 {{monthStats.recordCount}} 笔</view>
     <view class="comparison-grid">
@@ -181,7 +182,7 @@
         <view class="field half"><text class="field-label">分类</text><picker range="{{editCategories}}" range-key="name" bindchange="onEditCategoryChange"><view class="input picker-value">{{editForm.categoryName}}</view></picker></view>
         <view class="field half"><text class="field-label">日期</text><picker mode="date" value="{{editForm.date}}" bindchange="onEditDateChange"><view class="input picker-value">{{editForm.date}}</view></picker></view>
       </view>
-      <view class="field"><text class="field-label">备注</text><input class="input" maxlength="40" value="{{editForm.remark}}" bindinput="onEditRemarkInput" /></view>
+      <view class="field"><text class="field-label">备注</text><input class="input {{editRemarkLength > 40 ? 'input-error' : ''}}" maxlength="-1" value="{{editForm.remark}}" bindinput="onEditRemarkInput" /><view class="field-count {{editRemarkLength > 40 ? 'over' : ''}}">{{editRemarkLength}}/40</view></view>
       <button class="primary-button sheet-save" bindtap="onSaveEdit">保存修改</button>
     </view>
   </view>

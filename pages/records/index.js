@@ -1,8 +1,10 @@
 const { EXPENSE_CATEGORIES, INCOME_CATEGORIES, RECORD_TYPES, decorateCategory } = require('../../utils/constants')
 const { formatDate, formatMonth, getMonthRange, shiftMonth } = require('../../utils/date')
+const { getDateRangeError, isDateRangeValid } = require('../../utils/dateRange')
 const recordUtils = require('../../utils/record')
 const storage = require('../../utils/storage')
 const sync = require('../../utils/sync')
+const validation = require('../../utils/validation')
 
 const PAGE_SIZE = 20
 const CATEGORY_TYPE_OPTIONS = [
@@ -10,24 +12,6 @@ const CATEGORY_TYPE_OPTIONS = [
   { value: RECORD_TYPES.EXPENSE, label: '支出' },
   { value: RECORD_TYPES.INCOME, label: '收入' }
 ]
-
-function isDateRangeValid(startDate, endDate) {
-  if (!startDate || !endDate || startDate > endDate) {
-    return false
-  }
-  const [startYear, startMonth] = startDate.slice(0, 7).split('-').map(Number)
-  const [endYear, endMonth] = endDate.slice(0, 7).split('-').map(Number)
-  return (endYear * 12 + endMonth) - (startYear * 12 + startMonth) <= 2
-}
-
-function buildDatePickerLimits(startDate, endDate) {
-  return {
-    startDateMin: `${shiftMonth(endDate.slice(0, 7), -2)}-01`,
-    startDateMax: endDate,
-    endDateMin: startDate,
-    endDateMax: getMonthRange(shiftMonth(startDate.slice(0, 7), 2)).end
-  }
-}
 
 Page({
   data: {
@@ -38,10 +22,7 @@ Page({
     categoryFilterGroups: { expense: [], income: [] },
     categoryCascadeRange: [CATEGORY_TYPE_OPTIONS.map((item) => item.label), ['全部分类']],
     categoryCascadeValue: [0, 0],
-    startDateMin: '',
-    startDateMax: '',
-    endDateMin: '',
-    endDateMax: '',
+    dateRangeError: '',
     filters: {
       range: 'month',
       startDate: '',
@@ -57,7 +38,8 @@ Page({
     editVisible: false,
     editDirty: false,
     editForm: null,
-    editCategories: []
+    editCategories: [],
+    editRemarkLength: 0
   },
 
   onLoad(options) {
@@ -73,7 +55,7 @@ Page({
       'filters.endDate': range.end,
       'filters.type': options.type || '',
       'filters.categoryId': options.categoryId || '',
-      ...buildDatePickerLimits(range.start, range.end)
+      dateRangeError: ''
     })
     this.loadCategories().then(() => this.reload())
   },
@@ -130,8 +112,9 @@ Page({
   },
 
   async reload() {
-    if (!isDateRangeValid(this.data.filters.startDate, this.data.filters.endDate)) {
-      wx.showToast({ title: '时间范围最多选择3个月', icon: 'none' })
+    const dateRangeError = getDateRangeError(this.data.filters.startDate, this.data.filters.endDate)
+    if (dateRangeError) {
+      this.setData({ dateRangeError })
       return
     }
     const loadVersion = (this._loadVersion || 0) + 1
@@ -151,6 +134,9 @@ Page({
   },
 
   async loadMore(loadVersion = this._loadVersion || 0) {
+    if (getDateRangeError(this.data.filters.startDate, this.data.filters.endDate)) {
+      return
+    }
     if ((this.data.loading && this._loadingVersion === loadVersion) || !this.data.hasMore) {
       return
     }
@@ -231,7 +217,7 @@ Page({
         'filters.range': rangeKey,
         'filters.startDate': `${startMonth}-01`,
         'filters.endDate': getMonthRange(currentMonth).end,
-        ...buildDatePickerLimits(`${startMonth}-01`, getMonthRange(currentMonth).end)
+        dateRangeError: ''
       }, () => this.reload())
       return
     }
@@ -240,44 +226,34 @@ Page({
       'filters.range': rangeKey,
       'filters.startDate': range.start,
       'filters.endDate': range.end,
-      ...buildDatePickerLimits(range.start, range.end)
+      dateRangeError: ''
     }, () => this.reload())
   },
 
   onStartDateChange(event) {
     const startDate = event.detail.value
     const endDate = this.data.filters.endDate
-    if (startDate > endDate) {
-      wx.showToast({ title: '开始日期不能晚于结束日期', icon: 'none' })
-      return
-    }
-    if (!isDateRangeValid(startDate, endDate)) {
-      wx.showToast({ title: '时间范围最多选择3个月', icon: 'none' })
-      return
-    }
+    const dateRangeError = getDateRangeError(startDate, endDate)
     this.setData({
       'filters.range': 'custom',
       'filters.startDate': startDate,
-      ...buildDatePickerLimits(startDate, endDate)
-    }, () => this.reload())
+      dateRangeError
+    }, () => {
+      if (!dateRangeError) this.reload()
+    })
   },
 
   onEndDateChange(event) {
     const startDate = this.data.filters.startDate
     const endDate = event.detail.value
-    if (endDate < startDate) {
-      wx.showToast({ title: '结束日期不能早于开始日期', icon: 'none' })
-      return
-    }
-    if (!isDateRangeValid(startDate, endDate)) {
-      wx.showToast({ title: '时间范围最多选择3个月', icon: 'none' })
-      return
-    }
+    const dateRangeError = getDateRangeError(startDate, endDate)
     this.setData({
       'filters.range': 'custom',
       'filters.endDate': endDate,
-      ...buildDatePickerLimits(startDate, endDate)
-    }, () => this.reload())
+      dateRangeError
+    }, () => {
+      if (!dateRangeError) this.reload()
+    })
   },
 
   onTypeFilterTap(event) {
@@ -339,7 +315,7 @@ Page({
         categoryName: '全部分类',
         keyword: ''
       },
-      ...buildDatePickerLimits(range.start, range.end),
+      dateRangeError: '',
       ...this.buildCategoryCascadeState(this.data.categoryFilterGroups, '')
     }, () => this.reload())
   },
@@ -355,7 +331,8 @@ Page({
       editVisible: true,
       editDirty: false,
       editForm,
-      editCategories
+      editCategories,
+      editRemarkLength: validation.countCharacters(editForm.remark)
     })
   },
 
@@ -377,7 +354,16 @@ Page({
   },
 
   onEditRemarkInput(event) {
-    this.setData({ editDirty: true, 'editForm.remark': event.detail.value })
+    const remark = event.detail.value
+    const editRemarkLength = validation.countCharacters(remark)
+    if (this.data.editRemarkLength <= validation.MAX_REMARK_LENGTH && editRemarkLength > validation.MAX_REMARK_LENGTH) {
+      wx.showToast({ title: `备注最多 ${validation.MAX_REMARK_LENGTH} 个字符`, icon: 'none' })
+    }
+    this.setData({
+      editDirty: true,
+      'editForm.remark': remark,
+      editRemarkLength
+    })
   },
 
   onCloseEdit() {
@@ -401,8 +387,14 @@ Page({
   async onSaveEdit() {
     const form = this.data.editForm
     const amount = Number(form.amount)
-    if (!amount || amount <= 0) {
-      wx.showToast({ title: '请输入大于 0 的金额', icon: 'none' })
+    const amountMessage = validation.validateAmount(form.amount)
+    if (amountMessage) {
+      wx.showToast({ title: amountMessage, icon: 'none' })
+      return
+    }
+    const remarkMessage = validation.validateRemark(form.remark)
+    if (remarkMessage) {
+      wx.showToast({ title: remarkMessage, icon: 'none' })
       return
     }
     const result = await sync.updateRecord(form.clientId, {

@@ -40,6 +40,7 @@
 }
 
 .summary-item {
+  min-width: 0;
   min-height: 132rpx;
   padding: 22rpx;
   background: #f7f7fa;
@@ -56,8 +57,11 @@
 
 .summary-value {
   display: block;
-  font-size: 34rpx;
+  overflow: hidden;
+  font-size: 30rpx;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .budget-box,
@@ -69,6 +73,19 @@
 
 .budget-box {
   background: #f2f8f4;
+}
+
+.budget-line text,
+.budget-detail text {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.budget-line text:first-child,
+.budget-detail text:first-child {
+  margin-right: 16rpx;
 }
 
 .budget-warning {
@@ -234,14 +251,16 @@
 }
 
 .record-side {
-  flex: 0 0 168rpx;
+  flex: 0 0 220rpx;
   min-width: 0;
 }
 
 .record-amount {
+  overflow: hidden;
   font-size: 30rpx;
   font-weight: 600;
   text-align: right;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -266,10 +285,23 @@
   font-size: 24rpx;
 }
 
+.stat-row > view {
+  min-width: 0;
+  line-height: 1.5;
+}
+
+.stat-row > view > text {
+  display: block;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .month-count { margin-top: 12rpx; color: #8e8e93; font-size: 23rpx; }
 .comparison-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12rpx; margin-top: 18rpx; }
 .comparison-item { display: flex; flex-direction: column; gap: 8rpx; padding: 16rpx; color: #636366; background: #f7f7fa; border-radius: 12rpx; font-size: 22rpx; }
-.comparison-item text:last-child { color: #1d1d1f; font-weight: 600; }
+.comparison-item text:last-child { overflow: hidden; color: #1d1d1f; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .comparison-item.full { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; }
 
 .date-pill {
@@ -337,6 +369,14 @@
 .category-info {
   margin-bottom: 10rpx;
   font-size: 24rpx;
+}
+
+.category-info > text {
+  overflow: hidden;
+  max-width: 300rpx;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .category-chart-name { display: flex; align-items: center; gap: 10rpx; }

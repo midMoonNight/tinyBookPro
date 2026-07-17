@@ -1,13 +1,13 @@
-{ "_id": "expense_food", "name": "餐饮", "type": "expense", "scope": "system", "sortOrder": 10, "isEnabled": true }
-{ "_id": "expense_transport", "name": "交通", "type": "expense", "scope": "system", "sortOrder": 20, "isEnabled": true }
-{ "_id": "expense_shopping", "name": "购物", "type": "expense", "scope": "system", "sortOrder": 30, "isEnabled": true }
-{ "_id": "expense_housing", "name": "居住", "type": "expense", "scope": "system", "sortOrder": 40, "isEnabled": true }
-{ "_id": "expense_entertainment", "name": "娱乐", "type": "expense", "scope": "system", "sortOrder": 50, "isEnabled": true }
-{ "_id": "expense_medical", "name": "医疗", "type": "expense", "scope": "system", "sortOrder": 60, "isEnabled": true }
-{ "_id": "expense_study", "name": "学习", "type": "expense", "scope": "system", "sortOrder": 70, "isEnabled": true }
-{ "_id": "expense_other", "name": "其他", "type": "expense", "scope": "system", "sortOrder": 80, "isEnabled": true }
-{ "_id": "income_salary", "name": "工资", "type": "income", "scope": "system", "sortOrder": 10, "isEnabled": true }
-{ "_id": "income_bonus", "name": "奖金", "type": "income", "scope": "system", "sortOrder": 20, "isEnabled": true }
-{ "_id": "income_part_time", "name": "兼职", "type": "income", "scope": "system", "sortOrder": 30, "isEnabled": true }
-{ "_id": "income_investment", "name": "投资", "type": "income", "scope": "system", "sortOrder": 40, "isEnabled": true }
-{ "_id": "income_other", "name": "其他", "type": "income", "scope": "system", "sortOrder": 50, "isEnabled": true }
+{ "_id": "tbp_expense_food", "appKey": "tinybookpro", "name": "餐饮", "type": "expense", "scope": "system", "sortOrder": 10, "isEnabled": true }
+{ "_id": "tbp_expense_transport", "appKey": "tinybookpro", "name": "交通", "type": "expense", "scope": "system", "sortOrder": 20, "isEnabled": true }
+{ "_id": "tbp_expense_shopping", "appKey": "tinybookpro", "name": "购物", "type": "expense", "scope": "system", "sortOrder": 30, "isEnabled": true }
+{ "_id": "tbp_expense_housing", "appKey": "tinybookpro", "name": "居住", "type": "expense", "scope": "system", "sortOrder": 40, "isEnabled": true }
+{ "_id": "tbp_expense_entertainment", "appKey": "tinybookpro", "name": "娱乐", "type": "expense", "scope": "system", "sortOrder": 50, "isEnabled": true }
+{ "_id": "tbp_expense_medical", "appKey": "tinybookpro", "name": "医疗", "type": "expense", "scope": "system", "sortOrder": 60, "isEnabled": true }
+{ "_id": "tbp_expense_study", "appKey": "tinybookpro", "name": "学习", "type": "expense", "scope": "system", "sortOrder": 70, "isEnabled": true }
+{ "_id": "tbp_expense_other", "appKey": "tinybookpro", "name": "其他", "type": "expense", "scope": "system", "sortOrder": 80, "isEnabled": true }
+{ "_id": "tbp_income_salary", "appKey": "tinybookpro", "name": "工资", "type": "income", "scope": "system", "sortOrder": 10, "isEnabled": true }
+{ "_id": "tbp_income_bonus", "appKey": "tinybookpro", "name": "奖金", "type": "income", "scope": "system", "sortOrder": 20, "isEnabled": true }
+{ "_id": "tbp_income_part_time", "appKey": "tinybookpro", "name": "兼职", "type": "income", "scope": "system", "sortOrder": 30, "isEnabled": true }
+{ "_id": "tbp_income_investment", "appKey": "tinybookpro", "name": "投资", "type": "income", "scope": "system", "sortOrder": 40, "isEnabled": true }
+{ "_id": "tbp_income_other", "appKey": "tinybookpro", "name": "其他", "type": "income", "scope": "system", "sortOrder": 50, "isEnabled": true }

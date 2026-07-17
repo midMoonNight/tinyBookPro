@@ -11,13 +11,15 @@
         <view class="status-line">
           <input
             wx:if="{{isLoggedIn}}"
-            class="status-text profile-name-input"
+            class="status-text profile-name-input {{nicknameLength > 20 ? 'input-error' : ''}}"
             type="nickname"
-            maxlength="20"
+            maxlength="-1"
             value="{{nicknameDraft}}"
             bindinput="onNicknameInput"
+            bindblur="onNicknameBlur"
             bindnicknamereview="onNicknameReview"
           />
+          <view wx:if="{{isLoggedIn}}" class="nickname-count {{nicknameLength > 20 ? 'over' : ''}}">{{nicknameLength}}/20</view>
           <view wx:else class="status-text">{{statusText}}</view>
         </view>
         <view class="muted" wx:if="{{!isLoggedIn}}">当前数据仅保存在本机，登录后可同步保存。</view>

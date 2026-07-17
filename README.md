@@ -19,7 +19,7 @@
 需要真实云同步时：
 
 1. 在 `project.config.json` 中替换真实 `appid`。
-2. 在 `utils/cloud-config.js` 中确认 `CLOUD_ENV_ID` 等于云开发控制台里的环境 ID。
+2. 在 `utils/cloud-config.js` 中确认开发和生产云环境 ID。正式版 `release` 使用生产环境，开发版和体验版统一使用开发环境。
 3. 上传 `cloudfunctions/login` 云函数。
 4. 在云数据库中创建 `records` 和 `budgets` 集合。
 

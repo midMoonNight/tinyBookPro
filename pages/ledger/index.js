@@ -4,6 +4,7 @@ const recordUtils = require('../../utils/record')
 const stats = require('../../utils/stats')
 const storage = require('../../utils/storage')
 const sync = require('../../utils/sync')
+const validation = require('../../utils/validation')
 
 Page({
   data: {
@@ -45,6 +46,8 @@ Page({
     editDirty: false,
     editForm: null,
     editCategories: [],
+    remarkLength: 0,
+    editRemarkLength: 0,
     typeOptions: [
       { value: RECORD_TYPES.EXPENSE, label: '支出' },
       { value: RECORD_TYPES.INCOME, label: '收入' }
@@ -220,20 +223,28 @@ Page({
   },
 
   onRemarkInput(event) {
+    const remark = event.detail.value
+    const remarkLength = validation.countCharacters(remark)
+    if (this.data.remarkLength <= validation.MAX_REMARK_LENGTH && remarkLength > validation.MAX_REMARK_LENGTH) {
+      wx.showToast({ title: `备注最多 ${validation.MAX_REMARK_LENGTH} 个字符`, icon: 'none' })
+    }
     this.setData({
-      'form.remark': event.detail.value
+      'form.remark': remark,
+      remarkLength
     })
   },
 
   async onSubmit() {
     const form = this.data.form
     const amount = Number(form.amount)
-
-    if (!amount || amount <= 0) {
-      wx.showToast({
-        title: '请输入大于 0 的金额',
-        icon: 'none'
-      })
+    const amountMessage = validation.validateAmount(form.amount)
+    if (amountMessage) {
+      wx.showToast({ title: amountMessage, icon: 'none' })
+      return
+    }
+    const remarkMessage = validation.validateRemark(form.remark)
+    if (remarkMessage) {
+      wx.showToast({ title: remarkMessage, icon: 'none' })
       return
     }
 
@@ -255,7 +266,8 @@ Page({
     this.setData({
       'form.amount': '',
       'form.remark': '',
-      'form.date': formatDate()
+      'form.date': formatDate(),
+      remarkLength: 0
     })
     this.refresh()
   },
@@ -304,7 +316,8 @@ Page({
       editVisible: true,
       editDirty: false,
       editForm,
-      editCategories: this.data.categoryGroups[editForm.type]
+      editCategories: this.data.categoryGroups[editForm.type],
+      editRemarkLength: validation.countCharacters(editForm.remark)
     })
   },
 
@@ -326,7 +339,16 @@ Page({
   },
 
   onEditRemarkInput(event) {
-    this.setData({ editDirty: true, 'editForm.remark': event.detail.value })
+    const remark = event.detail.value
+    const editRemarkLength = validation.countCharacters(remark)
+    if (this.data.editRemarkLength <= validation.MAX_REMARK_LENGTH && editRemarkLength > validation.MAX_REMARK_LENGTH) {
+      wx.showToast({ title: `备注最多 ${validation.MAX_REMARK_LENGTH} 个字符`, icon: 'none' })
+    }
+    this.setData({
+      editDirty: true,
+      'editForm.remark': remark,
+      editRemarkLength
+    })
   },
 
   onCloseEdit() {
@@ -350,8 +372,14 @@ Page({
   async onSaveEdit() {
     const form = this.data.editForm
     const amount = Number(form.amount)
-    if (!amount || amount <= 0) {
-      wx.showToast({ title: '请输入大于 0 的金额', icon: 'none' })
+    const amountMessage = validation.validateAmount(form.amount)
+    if (amountMessage) {
+      wx.showToast({ title: amountMessage, icon: 'none' })
+      return
+    }
+    const remarkMessage = validation.validateRemark(form.remark)
+    if (remarkMessage) {
+      wx.showToast({ title: remarkMessage, icon: 'none' })
       return
     }
     const result = await sync.updateRecord(form.clientId, {

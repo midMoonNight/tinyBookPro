@@ -66,23 +66,39 @@ const COLOR_BY_KEY = CATEGORY_COLORS.reduce((result, color) => {
 }, {})
 
 const EXPENSE_CATEGORIES = [
-  { _id: 'expense_food', name: '餐饮', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'food', colorKey: 'orange', sortOrder: 10, isEnabled: true },
-  { _id: 'expense_transport', name: '交通', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'transport', colorKey: 'blue', sortOrder: 20, isEnabled: true },
-  { _id: 'expense_shopping', name: '购物', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'shopping', colorKey: 'pink', sortOrder: 30, isEnabled: true },
-  { _id: 'expense_housing', name: '居住', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'home', colorKey: 'indigo', sortOrder: 40, isEnabled: true },
-  { _id: 'expense_entertainment', name: '娱乐', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'entertainment', colorKey: 'purple', sortOrder: 50, isEnabled: true },
-  { _id: 'expense_medical', name: '医疗', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'medical', colorKey: 'red', sortOrder: 60, isEnabled: true },
-  { _id: 'expense_study', name: '学习', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'study', colorKey: 'cyan', sortOrder: 70, isEnabled: true },
-  { _id: 'expense_other', name: '其他', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'other', colorKey: 'gray', sortOrder: 80, isEnabled: true }
+  { _id: 'tbp_expense_food', name: '餐饮', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'food', colorKey: 'orange', sortOrder: 10, isEnabled: true },
+  { _id: 'tbp_expense_transport', name: '交通', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'transport', colorKey: 'blue', sortOrder: 20, isEnabled: true },
+  { _id: 'tbp_expense_shopping', name: '购物', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'shopping', colorKey: 'pink', sortOrder: 30, isEnabled: true },
+  { _id: 'tbp_expense_housing', name: '居住', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'home', colorKey: 'indigo', sortOrder: 40, isEnabled: true },
+  { _id: 'tbp_expense_entertainment', name: '娱乐', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'entertainment', colorKey: 'purple', sortOrder: 50, isEnabled: true },
+  { _id: 'tbp_expense_medical', name: '医疗', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'medical', colorKey: 'red', sortOrder: 60, isEnabled: true },
+  { _id: 'tbp_expense_study', name: '学习', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'study', colorKey: 'cyan', sortOrder: 70, isEnabled: true },
+  { _id: 'tbp_expense_other', name: '其他', type: RECORD_TYPES.EXPENSE, scope: 'system', iconKey: 'other', colorKey: 'gray', sortOrder: 80, isEnabled: true }
 ]
 
 const INCOME_CATEGORIES = [
-  { _id: 'income_salary', name: '工资', type: RECORD_TYPES.INCOME, scope: 'system', iconKey: 'salary', colorKey: 'green', sortOrder: 10, isEnabled: true },
-  { _id: 'income_bonus', name: '奖金', type: RECORD_TYPES.INCOME, scope: 'system', iconKey: 'bonus', colorKey: 'yellow', sortOrder: 20, isEnabled: true },
-  { _id: 'income_part_time', name: '兼职', type: RECORD_TYPES.INCOME, scope: 'system', iconKey: 'partTime', colorKey: 'teal', sortOrder: 30, isEnabled: true },
-  { _id: 'income_investment', name: '投资', type: RECORD_TYPES.INCOME, scope: 'system', iconKey: 'investment', colorKey: 'blue', sortOrder: 40, isEnabled: true },
-  { _id: 'income_other', name: '其他', type: RECORD_TYPES.INCOME, scope: 'system', iconKey: 'other', colorKey: 'gray', sortOrder: 50, isEnabled: true }
+  { _id: 'tbp_income_salary', name: '工资', type: RECORD_TYPES.INCOME, scope: 'system', iconKey: 'salary', colorKey: 'green', sortOrder: 10, isEnabled: true },
+  { _id: 'tbp_income_bonus', name: '奖金', type: RECORD_TYPES.INCOME, scope: 'system', iconKey: 'bonus', colorKey: 'yellow', sortOrder: 20, isEnabled: true },
+  { _id: 'tbp_income_part_time', name: '兼职', type: RECORD_TYPES.INCOME, scope: 'system', iconKey: 'partTime', colorKey: 'teal', sortOrder: 30, isEnabled: true },
+  { _id: 'tbp_income_investment', name: '投资', type: RECORD_TYPES.INCOME, scope: 'system', iconKey: 'investment', colorKey: 'blue', sortOrder: 40, isEnabled: true },
+  { _id: 'tbp_income_other', name: '其他', type: RECORD_TYPES.INCOME, scope: 'system', iconKey: 'other', colorKey: 'gray', sortOrder: 50, isEnabled: true }
 ]
+
+const LEGACY_SYSTEM_CATEGORY_ID_MAP = {
+  expense_food: 'tbp_expense_food',
+  expense_transport: 'tbp_expense_transport',
+  expense_shopping: 'tbp_expense_shopping',
+  expense_housing: 'tbp_expense_housing',
+  expense_entertainment: 'tbp_expense_entertainment',
+  expense_medical: 'tbp_expense_medical',
+  expense_study: 'tbp_expense_study',
+  expense_other: 'tbp_expense_other',
+  income_salary: 'tbp_income_salary',
+  income_bonus: 'tbp_income_bonus',
+  income_part_time: 'tbp_income_part_time',
+  income_investment: 'tbp_income_investment',
+  income_other: 'tbp_income_other'
+}
 
 const SYSTEM_CATEGORY_BY_ID = [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES]
   .reduce((result, category) => {
@@ -118,6 +134,7 @@ module.exports = {
   COLOR_BY_KEY,
   decorateCategory,
   ICON_BY_KEY,
+  LEGACY_SYSTEM_CATEGORY_ID_MAP,
   RECORD_TYPES,
   SYSTEM_CATEGORY_BY_ID,
   TYPE_LABELS,

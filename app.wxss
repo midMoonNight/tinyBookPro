@@ -108,6 +108,21 @@ button {
   border-radius: 14rpx;
 }
 
+.input-error {
+  border-color: #ff3b30;
+}
+
+.field-count {
+  margin-top: 8rpx;
+  color: #8e8e93;
+  text-align: right;
+  font-size: 21rpx;
+}
+
+.field-count.over {
+  color: #ff3b30;
+}
+
 .tag {
   display: inline-flex;
   align-items: center;

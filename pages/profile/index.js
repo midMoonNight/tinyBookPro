@@ -1,6 +1,8 @@
 const { formatMonth } = require('../../utils/date')
 const storage = require('../../utils/storage')
 const sync = require('../../utils/sync')
+const validation = require('../../utils/validation')
+const { APP_KEY } = require('../../utils/cloud-config')
 
 Page({
   data: {
@@ -14,7 +16,8 @@ Page({
     statusText: '未登录',
     profileName: '',
     profileAvatar: '',
-    nicknameDraft: ''
+    nicknameDraft: '',
+    nicknameLength: 0
   },
 
   onLoad() {
@@ -40,7 +43,8 @@ Page({
       statusText: user ? (user.nickName || '微信用户') : '未登录',
       profileName: user && user.nickName ? user.nickName : '微信用户',
       profileAvatar: user && user.avatarUrl ? user.avatarUrl : '',
-      nicknameDraft: user && user.nickName ? user.nickName : '微信用户'
+      nicknameDraft: user && user.nickName ? user.nickName : '微信用户',
+      nicknameLength: validation.countCharacters(user && user.nickName ? user.nickName : '微信用户')
     })
   },
 
@@ -52,11 +56,9 @@ Page({
 
   async onSaveBudget() {
     const amount = Number(this.data.budgetAmount)
-    if (!amount || amount <= 0) {
-      wx.showToast({
-        title: '请输入大于 0 的预算',
-        icon: 'none'
-      })
+    const amountMessage = validation.validateAmount(this.data.budgetAmount, '预算')
+    if (amountMessage) {
+      wx.showToast({ title: amountMessage, icon: 'none' })
       return
     }
 
@@ -144,7 +146,7 @@ Page({
       })
       const extension = tempFilePath.split('.').pop() || 'jpg'
       const uploadResult = await wx.cloud.uploadFile({
-        cloudPath: `avatars/${user.userId}/${Date.now()}.${extension}`,
+        cloudPath: `apps/${APP_KEY}/avatars/${user.userId}/${Date.now()}.${extension}`,
         filePath: tempFilePath
       })
       await sync.updateUserProfile(user, {
@@ -169,9 +171,24 @@ Page({
   },
 
   onNicknameInput(event) {
+    const nicknameDraft = event.detail.value
+    const nicknameLength = validation.countCharacters(nicknameDraft)
+    if (this.data.nicknameLength <= validation.MAX_NICKNAME_LENGTH && nicknameLength > validation.MAX_NICKNAME_LENGTH) {
+      wx.showToast({ title: `昵称最多 ${validation.MAX_NICKNAME_LENGTH} 个字符`, icon: 'none' })
+    }
     this.setData({
-      nicknameDraft: event.detail.value
+      nicknameDraft,
+      nicknameLength
     })
+  },
+
+  onNicknameBlur() {
+    if (this.data.nicknameLength > validation.MAX_NICKNAME_LENGTH) {
+      wx.showToast({
+        title: `昵称最多 ${validation.MAX_NICKNAME_LENGTH} 个字符`,
+        icon: 'none'
+      })
+    }
   },
 
   normalizeNickname(value) {
@@ -179,9 +196,9 @@ Page({
   },
 
   validateNickname(nickName) {
-    const length = Array.from(nickName).length
-    if (length < 1 || length > 20) {
-      return '昵称长度需为 1-20 个字符'
+    const length = validation.countCharacters(nickName)
+    if (length < 1 || length > validation.MAX_NICKNAME_LENGTH) {
+      return `昵称长度需为 1-${validation.MAX_NICKNAME_LENGTH} 个字符`
     }
     if (/[\u0000-\u001f\u007f\u200b-\u200d\u2060\ufeff]/.test(nickName)) {
       return '昵称包含不支持的字符'
@@ -194,7 +211,8 @@ Page({
     const user = storage.getUser()
     if (!nickName || !user || !user.isCloudUser || nickName === user.nickName) {
       this.setData({
-        nicknameDraft: user && user.nickName ? user.nickName : '微信用户'
+        nicknameDraft: user && user.nickName ? user.nickName : '微信用户',
+        nicknameLength: validation.countCharacters(user && user.nickName ? user.nickName : '微信用户')
       })
       return
     }
@@ -202,7 +220,8 @@ Page({
     const validationMessage = this.validateNickname(nickName)
     if (validationMessage) {
       this.setData({
-        nicknameDraft: user.nickName || '微信用户'
+        nicknameDraft: user.nickName || '微信用户',
+        nicknameLength: validation.countCharacters(user.nickName || '微信用户')
       })
       wx.showToast({
         title: validationMessage,
@@ -213,7 +232,8 @@ Page({
 
     if (event.detail.timeout) {
       this.setData({
-        nicknameDraft: user.nickName || '微信用户'
+        nicknameDraft: user.nickName || '微信用户',
+        nicknameLength: validation.countCharacters(user.nickName || '微信用户')
       })
       wx.showToast({
         title: '昵称审核超时，请重试',
@@ -224,7 +244,8 @@ Page({
 
     if (!event.detail.pass) {
       this.setData({
-        nicknameDraft: user.nickName || '微信用户'
+        nicknameDraft: user.nickName || '微信用户',
+        nicknameLength: validation.countCharacters(user.nickName || '微信用户')
       })
       wx.showToast({
         title: '昵称未通过微信审核',

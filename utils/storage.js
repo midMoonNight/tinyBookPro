@@ -1,5 +1,5 @@
 const { createClientId } = require('./id')
-const { CATEGORY_ID_BY_TYPE_AND_NAME } = require('./constants')
+const { CATEGORY_ID_BY_TYPE_AND_NAME, LEGACY_SYSTEM_CATEGORY_ID_MAP } = require('./constants')
 const { formatMonth } = require('./date')
 
 const KEYS = {
@@ -34,10 +34,13 @@ function setRecords(records) {
 
 function normalizeRecord(record) {
   const categoryName = record.categoryNameSnapshot || record.category || '未分类'
+  const categoryId = LEGACY_SYSTEM_CATEGORY_ID_MAP[record.categoryId]
+    || record.categoryId
+    || CATEGORY_ID_BY_TYPE_AND_NAME[`${record.type}:${categoryName}`]
   return {
     ...record,
     clientId: record.clientId || record.id || record._id || createClientId(),
-    categoryId: record.categoryId || CATEGORY_ID_BY_TYPE_AND_NAME[`${record.type}:${categoryName}`] || record.categoryId,
+    categoryId,
     categoryNameSnapshot: categoryName,
     amount: Number(record.amount || 0)
   }

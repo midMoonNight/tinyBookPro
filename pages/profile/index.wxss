@@ -66,10 +66,23 @@
 }
 
 .profile-name-input {
+  flex: 1;
+  min-width: 0;
   width: 100%;
   height: 54rpx;
   padding: 0;
   line-height: 54rpx;
+}
+
+.nickname-count {
+  flex: 0 0 auto;
+  margin: 8rpx 0 0 12rpx;
+  color: #8e8e93;
+  font-size: 20rpx;
+}
+
+.nickname-count.over {
+  color: #ff3b30;
 }
 
 .profile-main .muted {
@@ -86,9 +99,12 @@
 }
 
 .budget-current {
+  overflow: hidden;
   margin-top: 18rpx;
   color: #007aff;
   font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .budget-input {

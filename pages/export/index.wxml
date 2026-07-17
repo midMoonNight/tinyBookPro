@@ -5,6 +5,10 @@
       <view class="month-control">{{month}}</view>
     </picker>
     <view class="export-note">每次导出一个自然月，可选择最近两年内的月份。文件包含该月全部有效账单，不包含账号和内部同步字段。</view>
-    <button class="primary-button export-button" loading="{{exporting}}" bindtap="exportCsv">导出 CSV</button>
+    <button class="primary-button export-button" loading="{{exporting}}" bindtap="exportCsv">生成 CSV</button>
+    <view wx:if="{{readyFilePath && readyMonth === month}}" class="export-ready">
+      <view class="export-ready-text">已生成 {{readyMonth}} 的 {{readyRecordCount}} 条账单</view>
+      <button class="secondary-button share-button" bindtap="shareCsv">分享 CSV</button>
+    </view>
   </view>
 </view>

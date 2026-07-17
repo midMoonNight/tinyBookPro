@@ -1,6 +1,7 @@
 const storage = require('./storage')
 const { getMonthRange } = require('./date')
 const { EXPENSE_CATEGORIES, INCOME_CATEGORIES } = require('./constants')
+const { APP_KEY } = require('./cloud-config')
 
 const RECORDS_COLLECTION = 'records'
 const BUDGETS_COLLECTION = 'budgets'
@@ -8,6 +9,11 @@ const SYSTEM_CATEGORIES_COLLECTION = 'categories'
 const USER_CATEGORIES_COLLECTION = 'user_categories'
 const USERS_COLLECTION = 'users'
 const CLOUD_QUERY_LIMIT = 20
+
+function getDefaultCategories() {
+  return [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES]
+    .map((category) => ({ ...category, appKey: APP_KEY }))
+}
 
 function isCloudReady() {
   const app = getApp()
@@ -30,6 +36,7 @@ async function login(profile = null) {
       throw new Error('login cloud function did not return openid')
     }
     const user = {
+      appKey: APP_KEY,
       userId: openid,
       isCloudUser: true,
       loggedInAt: now,
@@ -91,6 +98,7 @@ function validateNickname(value) {
 async function upsertUser(db, user) {
   const result = await db.collection(USERS_COLLECTION)
     .where({
+      appKey: APP_KEY,
       userId: user.userId
     })
     .get()
@@ -101,6 +109,7 @@ async function upsertUser(db, user) {
     : (existing && existing.nickName) || '微信用户'
   const avatarUrl = user.avatarUrl || (existing && existing.avatarUrl) || ''
   const data = {
+    appKey: APP_KEY,
     userId: user.userId,
     nickName,
     avatarUrl,
@@ -134,6 +143,7 @@ async function updateUserProfile(user, profile) {
   const db = wx.cloud.database()
   const result = await db.collection(USERS_COLLECTION)
     .where({
+      appKey: APP_KEY,
       userId: user.userId
     })
     .get()
@@ -143,6 +153,7 @@ async function updateUserProfile(user, profile) {
     ? validateNickname(profile.nickName)
     : ''
   const data = {
+    appKey: APP_KEY,
     nickName: hasCustomNickName(nextNickName)
       ? nextNickName
       : (existing && existing.nickName) || user.nickName || '微信用户',
@@ -161,6 +172,7 @@ async function updateUserProfile(user, profile) {
     await db.collection(USERS_COLLECTION).add({
       data: {
         ...data,
+        appKey: APP_KEY,
         userId: user.userId,
         status: 'active',
         createdAt: now,
@@ -173,16 +185,22 @@ async function updateUserProfile(user, profile) {
 }
 
 async function fetchCategories(user = null, includeDisabled = false) {
-  const defaults = [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES]
+  const defaults = getDefaultCategories()
   if (!isCloudReady()) {
     return defaults
   }
 
   try {
     const db = wx.cloud.database()
-    const tasks = [fetchAll(db.collection(SYSTEM_CATEGORIES_COLLECTION).where({ scope: 'system' }))]
+    const tasks = [fetchAll(db.collection(SYSTEM_CATEGORIES_COLLECTION).where({
+      appKey: APP_KEY,
+      scope: 'system'
+    }))]
     if (user && user.isCloudUser) {
-      tasks.push(fetchAll(db.collection(USER_CATEGORIES_COLLECTION).where({ userId: user.userId })))
+      tasks.push(fetchAll(db.collection(USER_CATEGORIES_COLLECTION).where({
+        appKey: APP_KEY,
+        userId: user.userId
+      })))
     }
     const results = await Promise.all(tasks)
     const categories = [...defaults, ...results.flat()].reduce((map, item) => {
@@ -212,6 +230,7 @@ async function saveCategory(category, user) {
     const existingResult = await db.collection(USER_CATEGORIES_COLLECTION)
       .where({
         _id: category._id,
+        appKey: APP_KEY,
         userId: user.userId,
         scope: 'user'
       })
@@ -223,6 +242,7 @@ async function saveCategory(category, user) {
   }
   if (category.isEnabled !== false) {
     const userResult = await db.collection(USER_CATEGORIES_COLLECTION).where({
+      appKey: APP_KEY,
       userId: user.userId,
       type: category.type,
       name,
@@ -236,6 +256,7 @@ async function saveCategory(category, user) {
   }
 
   const data = {
+    appKey: APP_KEY,
     userId: user.userId,
     scope: 'user',
     type: category.type,
@@ -269,7 +290,7 @@ async function saveCategory(category, user) {
 }
 
 async function setCategoryEnabled(category, isEnabled, user) {
-  if (!user || !category || category.scope !== 'user' || category.userId !== user.userId) {
+  if (!user || !category || category.appKey !== APP_KEY || category.scope !== 'user' || category.userId !== user.userId) {
     throw new Error('only owned custom categories can be changed')
   }
   return saveCategory({
@@ -317,12 +338,12 @@ async function syncLocalToCloud(user) {
 async function createRecord(record, user) {
   if (!isCloudReady() || !user || !user.isCloudUser) {
     return {
-      record: storage.addRecord({ ...record, syncStatus: 'pending' }),
+      record: storage.addRecord({ ...record, appKey: APP_KEY, syncStatus: 'pending' }),
       cloudSynced: false
     }
   }
 
-  const nextRecord = storage.addRecord({ ...record, syncStatus: 'pending' })
+  const nextRecord = storage.addRecord({ ...record, appKey: APP_KEY, syncStatus: 'pending' })
   try {
     const db = wx.cloud.database()
     await upsertRecord(db, nextRecord, user)
@@ -388,50 +409,61 @@ async function fetchRecordsPage(user, filters = {}) {
     }
   }
 
-  const db = wx.cloud.database()
-  const _ = db.command
-  const where = {
-    userId: user.userId,
-    deletedAt: _.exists(false)
-  }
-  if (filters.startDate && filters.endDate) {
-    where.date = _.gte(filters.startDate).and(_.lte(filters.endDate))
-  }
-  if (filters.type) {
-    where.type = filters.type
-  }
-  const keyword = String(filters.keyword || '').trim().toLowerCase()
-  const records = []
-  let rawOffset = offset
-  let exhausted = false
-  while (records.length < pageSize && !exhausted) {
-    const result = await db.collection(RECORDS_COLLECTION)
-      .where(where)
-      .orderBy('date', 'desc')
-      .orderBy('createdAt', 'desc')
-      .skip(rawOffset)
-      .limit(CLOUD_QUERY_LIMIT)
-      .get()
-    const rawRecords = result.data || []
-    exhausted = rawRecords.length < CLOUD_QUERY_LIMIT
-    for (const rawRecord of rawRecords) {
-      rawOffset += 1
-      const record = normalizeCloudRecord(rawRecord)
-      const categoryMatches = !filters.categoryId || record.categoryId === filters.categoryId
-      const keywordMatches = !keyword || String(record.remark || '').toLowerCase().includes(keyword)
-      if (categoryMatches && keywordMatches) {
-        records.push(record)
-      }
-      if (records.length >= pageSize) {
-        exhausted = false
-        break
+  try {
+    const db = wx.cloud.database()
+    const _ = db.command
+    const where = {
+      appKey: APP_KEY,
+      userId: user.userId,
+      deletedAt: _.exists(false)
+    }
+    if (filters.startDate && filters.endDate) {
+      where.date = _.gte(filters.startDate).and(_.lte(filters.endDate))
+    }
+    if (filters.type) {
+      where.type = filters.type
+    }
+    const keyword = String(filters.keyword || '').trim().toLowerCase()
+    const records = []
+    let rawOffset = offset
+    let exhausted = false
+    while (records.length < pageSize && !exhausted) {
+      const result = await db.collection(RECORDS_COLLECTION)
+        .where(where)
+        .orderBy('date', 'desc')
+        .orderBy('createdAt', 'desc')
+        .skip(rawOffset)
+        .limit(CLOUD_QUERY_LIMIT)
+        .get()
+      const rawRecords = result.data || []
+      exhausted = rawRecords.length < CLOUD_QUERY_LIMIT
+      for (const rawRecord of rawRecords) {
+        rawOffset += 1
+        const record = normalizeCloudRecord(rawRecord)
+        const categoryMatches = !filters.categoryId || record.categoryId === filters.categoryId
+        const keywordMatches = !keyword || String(record.remark || '').toLowerCase().includes(keyword)
+        if (categoryMatches && keywordMatches) {
+          records.push(record)
+        }
+        if (records.length >= pageSize) {
+          exhausted = false
+          break
+        }
       }
     }
-  }
-  return {
-    records,
-    hasMore: !exhausted,
-    nextOffset: rawOffset
+    return {
+      records,
+      hasMore: !exhausted,
+      nextOffset: rawOffset
+    }
+  } catch (error) {
+    console.warn('[cloud] records query failed, using local cache', error)
+    const records = filterLocalRecords(storage.getActiveRecords(), filters)
+    return {
+      records: records.slice(offset, offset + pageSize),
+      hasMore: offset + pageSize < records.length,
+      nextOffset: offset + pageSize
+    }
   }
 }
 
@@ -462,16 +494,24 @@ async function fetchRecentRecords(user, limit = 5) {
       .slice(0, pageSize)
   }
 
-  const db = wx.cloud.database()
-  const result = await db.collection(RECORDS_COLLECTION)
-    .where({
-      userId: user.userId,
-      deletedAt: db.command.exists(false)
-    })
-    .orderBy('createdAt', 'desc')
-    .limit(pageSize)
-    .get()
-  return (result.data || []).map(normalizeCloudRecord)
+  try {
+    const db = wx.cloud.database()
+    const result = await db.collection(RECORDS_COLLECTION)
+      .where({
+        appKey: APP_KEY,
+        userId: user.userId,
+        deletedAt: db.command.exists(false)
+      })
+      .orderBy('createdAt', 'desc')
+      .limit(pageSize)
+      .get()
+    return (result.data || []).map(normalizeCloudRecord)
+  } catch (error) {
+    console.warn('[cloud] recent records query failed, using local cache', error)
+    return [...storage.getActiveRecords()]
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+      .slice(0, pageSize)
+  }
 }
 
 async function saveBudget(month, amount, user) {
@@ -507,6 +547,7 @@ async function deleteRecord(clientId, user) {
   const now = new Date().toISOString()
   const result = await db.collection(RECORDS_COLLECTION)
     .where({
+      appKey: APP_KEY,
       userId: user.userId,
       clientId
     })
@@ -517,6 +558,7 @@ async function deleteRecord(clientId, user) {
     const legacyResult = await db.collection(RECORDS_COLLECTION)
       .where({
         _id: localRecord.id,
+        appKey: APP_KEY,
         userId: user.userId
       })
       .get()
@@ -526,6 +568,7 @@ async function deleteRecord(clientId, user) {
   if (documentId) {
     await db.collection(RECORDS_COLLECTION).doc(documentId).update({
       data: {
+        appKey: APP_KEY,
         deletedAt: now,
         updatedAt: now
       }
@@ -546,6 +589,7 @@ async function fetchCurrentMonthFromCloud(user, month) {
   const remoteRecords = await fetchRecordsForMonth(user, month)
   const budgetResult = await db.collection(BUDGETS_COLLECTION)
     .where({
+      appKey: APP_KEY,
       userId: user.userId,
       month
     })
@@ -583,6 +627,7 @@ async function fetchCurrentMonthFromCloud(user, month) {
 async function upsertRecord(db, record, user) {
   const result = await db.collection(RECORDS_COLLECTION)
     .where({
+      appKey: APP_KEY,
       userId: user.userId,
       clientId: record.clientId
     })
@@ -591,6 +636,7 @@ async function upsertRecord(db, record, user) {
   const { _id, _openid, id, syncStatus, ...recordData } = record
   const data = {
     ...recordData,
+    appKey: APP_KEY,
     userId: user.userId
   }
 
@@ -604,7 +650,7 @@ async function upsertRecord(db, record, user) {
 
   if (id) {
     const legacyResult = await db.collection(RECORDS_COLLECTION).doc(id).get()
-    if (legacyResult.data && legacyResult.data.userId === user.userId) {
+    if (legacyResult.data && legacyResult.data.appKey === APP_KEY && legacyResult.data.userId === user.userId) {
       await db.collection(RECORDS_COLLECTION).doc(id).update({ data })
       return
     }
@@ -627,6 +673,7 @@ function normalizeCloudRecord(record) {
 async function upsertBudget(db, budget, user) {
   const result = await db.collection(BUDGETS_COLLECTION)
     .where({
+      appKey: APP_KEY,
       userId: user.userId,
       month: budget.month
     })
@@ -635,6 +682,7 @@ async function upsertBudget(db, budget, user) {
   const { _id, _openid, id, ...budgetData } = budget
   const data = {
     ...budgetData,
+    appKey: APP_KEY,
     userId: user.userId
   }
 

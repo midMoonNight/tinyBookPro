@@ -33,5 +33,7 @@
     ]
   },
   "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
+  "enableShareTimeline": true,
   "sitemapLocation": "sitemap.json"
 }

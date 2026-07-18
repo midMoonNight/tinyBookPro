@@ -350,5 +350,13 @@ Page({
       return
     }
     wx.navigateTo({ url: '/pages/export/index' })
+  },
+
+  onShareAppMessage() {
+    return {
+      title: '极简记账本 Pro',
+      path: '/pages/ledger/index',
+      imageUrl: '/images/share-cover.jpg'
+    }
   }
 })

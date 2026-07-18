@@ -431,5 +431,20 @@ Page({
     wx.switchTab({
       url: '/pages/profile/index'
     })
+  },
+
+  onShareAppMessage() {
+    return {
+      title: '极简记账本 Pro',
+      path: '/pages/ledger/index',
+      imageUrl: '/images/share-cover.jpg'
+    }
+  },
+
+  onShareTimeline() {
+    return {
+      title: '极简记账本 Pro',
+      imageUrl: '/images/share-timeline-cover.jpg'
+    }
   }
 })

@@ -1,0 +1,14 @@
+<view class="page">
+  <view class="panel note">预算月份：{{month}}。分类预算独立统计，不会从月总预算中重复扣减。</view>
+  <view class="panel budget-list">
+    <view wx:if="{{budgets.length === 0}}" class="empty">本月还没有分类预算</view>
+    <view wx:for="{{budgets}}" wx:key="clientId" class="budget-item">
+      <view class="budget-head"><view class="budget-title"><text class="budget-name">{{item.categoryName}}</text><text wx:if="{{!item.categoryEnabled}}" class="disabled-tag">分类已停用</text></view><text>{{item.message}}</text></view>
+      <view class="budget-track"><view class="budget-fill {{item.status}}" style="width: {{item.progressPercent}}%;"></view></view>
+      <view class="budget-detail"><text>已用 ¥{{item.usedText}} / ¥{{item.amountText}}</text><text>剩余 ¥{{item.remainingText}}</text></view>
+      <view class="budget-actions"><text data-id="{{item.clientId}}" bindtap="openEdit">编辑</text><text data-id="{{item.clientId}}" class="danger" bindtap="remove">删除</text></view>
+    </view>
+  </view>
+  <button class="primary-button" bindtap="openCreate">新增分类预算</button>
+  <view wx:if="{{editorVisible}}" class="mask" bindtap="closeEditor"><view class="sheet" catchtap="stopPropagation"><view class="sheet-head"><text class="sheet-title">{{editor.clientId ? '编辑分类预算' : '新增分类预算'}}</text><text class="close" bindtap="closeEditor">×</text></view><view class="field"><text class="label">支出分类</text><picker range="{{categoryOptions}}" range-key="name" value="{{categoryIndex}}" bindchange="onCategoryChange"><view class="input picker-value">{{editor.categoryNameSnapshot}}</view></picker></view><view class="field"><text class="label">预算金额</text><input class="input" type="digit" value="{{editor.amount}}" bindinput="onAmountInput" /></view><button class="primary-button save" loading="{{saving}}" bindtap="save">保存预算</button></view></view>
+</view>

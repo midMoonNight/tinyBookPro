@@ -1,0 +1,20 @@
+<view class="page">
+  <view class="panel intro"><text>点击模板可直接预填记账表单，仍需检查后手动保存。</text></view>
+  <view class="panel template-list">
+    <view wx:if="{{templates.length === 0}}" class="empty">还没有快捷模板</view>
+    <view wx:for="{{templates}}" wx:key="clientId" class="template-item {{item.isEnabled === false ? 'disabled' : ''}}" data-id="{{item.clientId}}" bindtap="useTemplate">
+      <view class="template-main"><view class="template-name">{{item.name}}</view><view class="template-detail">{{item.type === 'income' ? '收入' : '支出'}} · {{item.categoryNameSnapshot}}{{item.amount !== '' ? ' · ¥' + item.amount : ' · 金额待填写'}}</view></view>
+      <view class="template-actions" catchtap="stopPropagation"><view data-id="{{item.clientId}}" data-direction="-1" bindtap="move">↑</view><view data-id="{{item.clientId}}" data-direction="1" bindtap="move">↓</view><view data-id="{{item.clientId}}" bindtap="openEdit">编辑</view><view data-id="{{item.clientId}}" bindtap="toggle">{{item.isEnabled === false ? '启用' : '停用'}}</view><view data-id="{{item.clientId}}" class="danger" bindtap="remove">删除</view></view>
+    </view>
+  </view>
+  <button class="primary-button" bindtap="openCreate">新增模板</button>
+  <view wx:if="{{editorVisible}}" class="mask" bindtap="closeEditor"><view class="sheet" catchtap="stopPropagation">
+    <view class="sheet-head"><text class="sheet-title">{{editor.clientId ? '编辑模板' : '新增模板'}}</text><text class="close" bindtap="closeEditor">×</text></view>
+    <view class="field"><text class="label">名称</text><input class="input {{nameLength > 12 || nameInvalid ? 'input-error' : ''}}" maxlength="-1" value="{{editor.name}}" data-field="name" bindinput="onInput" placeholder="例如：早餐" /><view class="field-count {{nameLength > 12 ? 'over' : ''}}">{{nameLength}}/12</view><view class="field-hint {{nameInvalid ? 'error' : ''}}">仅支持中文、英文、数字和空格</view></view>
+    <view class="field"><text class="label">类型</text><picker wx:if="{{!editor.clientId}}" range="{{typeOptions}}" value="{{editor.type === 'income' ? 1 : 0}}" bindchange="onTypeChange"><view class="input picker-value">{{editor.type === 'income' ? '收入' : '支出'}}</view></picker><view wx:else class="input picker-value">{{editor.type === 'income' ? '收入' : '支出'}}</view></view>
+    <view class="field"><text class="label">金额（可选）</text><input class="input" type="digit" value="{{editor.amount}}" data-field="amount" bindinput="onInput" placeholder="不填则使用时输入" /></view>
+    <view class="field"><text class="label">分类</text><picker range="{{categoryOptions}}" range-key="name" value="{{categoryIndex}}" bindchange="onCategoryChange"><view class="input picker-value">{{editor.categoryNameSnapshot}}</view></picker></view>
+    <view class="field"><text class="label">备注（可选）</text><input class="input {{remarkLength > 40 ? 'input-error' : ''}}" maxlength="-1" value="{{editor.remark}}" data-field="remark" bindinput="onInput" placeholder="可不填" /><view class="field-count {{remarkLength > 40 ? 'over' : ''}}">{{remarkLength}}/40</view></view>
+    <button class="primary-button save" loading="{{saving}}" bindtap="save">保存模板</button>
+  </view></view>
+</view>

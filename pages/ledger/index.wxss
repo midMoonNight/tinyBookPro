@@ -167,6 +167,39 @@
   flex: 1;
 }
 
+.form-category-budget {
+  margin-top: 12rpx;
+  padding: 14rpx 18rpx;
+  color: #248a3d;
+  background: #f2f8f4;
+  border-radius: 12rpx;
+  font-size: 22rpx;
+}
+
+.form-category-budget.warning {
+  color: #b36b00;
+  background: #fff8e6;
+}
+
+.form-category-budget.over {
+  color: #ff3b30;
+  background: #fff1ef;
+}
+
+.form-category-budget-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16rpx;
+  font-weight: 600;
+}
+
+.form-category-budget-detail {
+  overflow: hidden;
+  margin-top: 6rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .field-label {
   display: block;
   margin-bottom: 10rpx;
@@ -382,6 +415,9 @@
 .category-chart-name { display: flex; align-items: center; gap: 10rpx; }
 .chart-category-icon { display: flex; align-items: center; justify-content: center; width: 44rpx; height: 44rpx; border-radius: 50%; }
 .chart-category-icon image { width: 28rpx; height: 28rpx; }
+.category-budget { margin-top: 8rpx; color: #8e8e93; font-size: 21rpx; }
+.category-budget.warning { color: #b36b00; }
+.category-budget.over { color: #ff3b30; }
 
 .sheet-mask { position: fixed; z-index: 20; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: flex-end; background: rgba(0,0,0,.35); }
 .edit-sheet { width: 100%; max-height: 88vh; padding: 28rpx 28rpx calc(32rpx + env(safe-area-inset-bottom)); overflow-y: auto; background: #fff; border-radius: 24rpx 24rpx 0 0; }
@@ -389,3 +425,5 @@
 .sheet-title { font-size: 34rpx; font-weight: 600; }
 .sheet-close { width: 52rpx; height: 52rpx; color: #8e8e93; text-align: center; line-height: 48rpx; background: #f2f2f7; border-radius: 50%; font-size: 40rpx; }
 .sheet-save { margin-top: 28rpx; }
+.pending-entry { display: flex; align-items: center; justify-content: space-between; margin: -8rpx 0 24rpx; padding: 18rpx 20rpx; color: #007aff; background: #eef6ff; border-radius: 14rpx; font-size: 24rpx; }.pending-entry text { font-size: 22rpx; }.annual-entry { display: flex; align-items: center; justify-content: space-between; }.annual-entry .section-title { margin-bottom: 6rpx; }.annual-entry > text { color: #c7c7cc; font-size: 48rpx; }
+.quick-template-scroll { width: 100%; margin: -2rpx 0 18rpx; white-space: nowrap; }.quick-template-row { display: inline-flex; gap: 12rpx; padding-right: 2rpx; }.quick-template { display: flex; flex: 0 0 150rpx; flex-direction: column; gap: 5rpx; width: 150rpx; min-width: 0; padding: 14rpx 16rpx; color: #636366; background: #f7f7fa; border-radius: 12rpx; font-size: 21rpx; }.quick-template-name,.quick-template-amount { display: block; overflow: hidden; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; }.quick-template-name { color: #1d1d1f; font-size: 24rpx; font-weight: 600; }

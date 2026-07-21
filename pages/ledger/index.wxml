@@ -43,7 +43,11 @@
   </view>
 
   <view class="section panel">
+    <view wx:if="{{pendingInstances.length > 0}}" class="pending-entry" bindtap="goRecurring">待记账 {{pendingInstances.length}} 笔周期账单 <text>查看</text></view>
     <view class="section-title">快速记一笔</view>
+    <scroll-view wx:if="{{quickTemplates.length > 0}}" scroll-x="true" enable-flex="true" class="quick-template-scroll">
+      <view class="quick-template-row"><view wx:for="{{quickTemplates}}" wx:key="clientId" class="quick-template" data-id="{{item.clientId}}" bindtap="onQuickTemplateTap"><text class="quick-template-name">{{item.name}}</text><text class="quick-template-amount">{{item.amount === '' ? '金额待填' : '¥' + item.amount}}</text></view></view>
+    </scroll-view>
     <view class="type-switch">
       <view
         wx:for="{{typeOptions}}"
@@ -74,6 +78,11 @@
           <view class="input picker-value">{{form.date}}</view>
         </picker>
       </view>
+    </view>
+
+    <view wx:if="{{showCategoryBudgetHint}}" class="form-category-budget {{categoryBudgetHint.status}}">
+      <view class="form-category-budget-head"><text>{{categoryBudgetHint.categoryName}}分类预算</text><text>{{categoryBudgetHint.message}}</text></view>
+      <view class="form-category-budget-detail">预算 ¥{{categoryBudgetHint.amountText}} · 预计已用 ¥{{categoryBudgetHint.projectedUsedText}} · 预计剩余 ¥{{categoryBudgetHint.projectedRemainingText}}</view>
     </view>
 
     <view class="field">
@@ -150,7 +159,7 @@
     </view>
 
     <view class="chart-title">每日支出趋势</view>
-    <scroll-view scroll-x class="trend-scroll">
+    <scroll-view scroll-x="true" class="trend-scroll">
       <view class="trend-chart" style="width: {{monthStats.trendChartWidth}}rpx;">
         <view wx:for="{{monthStats.trend}}" wx:key="date" class="trend-bar-wrap">
           <view class="trend-bar" style="height: {{item.percent}}%;"></view>
@@ -170,8 +179,13 @@
         <view class="category-track">
           <view class="category-fill" style="width: {{item.percent}}%; background: {{item.foreground}};"></view>
         </view>
+        <view wx:if="{{item.hasBudget}}" class="category-budget {{item.budgetStatus}}">预算 ¥{{item.budgetAmountText}} · 已用 ¥{{item.budgetUsedText}} · 剩余 ¥{{item.budgetRemainingText}}</view>
       </view>
     </view>
+  </view>
+
+  <view class="section panel annual-entry" bindtap="goAnnual">
+    <view><view class="section-title">年度统计</view><view class="muted">查看全年收支、趋势和分类排名</view></view><text>›</text>
   </view>
 
   <view wx:if="{{editVisible}}" class="sheet-mask" bindtap="onCloseEdit">

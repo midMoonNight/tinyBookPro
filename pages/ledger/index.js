@@ -5,6 +5,7 @@ const stats = require('../../utils/stats')
 const storage = require('../../utils/storage')
 const sync = require('../../utils/sync')
 const validation = require('../../utils/validation')
+const v3 = require('../../utils/v3')
 
 Page({
   data: {
@@ -48,6 +49,11 @@ Page({
     editCategories: [],
     remarkLength: 0,
     editRemarkLength: 0,
+    formDirty: false,
+    quickTemplates: [],
+    pendingInstances: [],
+    categoryBudgetHint: null,
+    showCategoryBudgetHint: false,
     typeOptions: [
       { value: RECORD_TYPES.EXPENSE, label: '支出' },
       { value: RECORD_TYPES.INCOME, label: '收入' }
@@ -90,6 +96,8 @@ Page({
   async onShow() {
     await this.loadCategories()
     const user = storage.getUser()
+    await this.loadV3Data(user)
+    this.applyPendingTemplate()
     if (user && user.isCloudUser) {
       const selectedMonth = this.data.selectedMonth || formatMonth()
       try {
@@ -104,6 +112,64 @@ Page({
       }
     }
     this.refresh()
+  },
+
+  async loadV3Data(user) {
+    await sync.fetchV3Data(user)
+    const recurringPlans = storage.getRecurringPlans()
+    const legacyInstances = v3.getLegacyStartInstances(recurringPlans, storage.getRecurringInstances())
+    await Promise.all(legacyInstances.map((item) => sync.deleteV3Item('instance', item.clientId, user)))
+    const newInstances = v3.createPendingInstances(recurringPlans, storage.getRecurringInstances())
+    await Promise.all(newInstances.map((item) => sync.saveV3Item('instance', item, user)))
+    const plans = recurringPlans.reduce((map, item) => { map[item.clientId] = item; return map }, {})
+    const pendingInstances = storage.getRecurringInstances()
+      .filter((item) => item.status === 'pending' && !item.deletedAt)
+      .map((item) => ({ ...item, plan: plans[item.planClientId] }))
+      .filter((item) => item.plan && !item.plan.deletedAt && item.plan.isEnabled !== false)
+      .sort((a, b) => String(a.occurrenceDate).localeCompare(String(b.occurrenceDate)))
+    const quickTemplates = storage.getQuickTemplates()
+      .filter((item) => item.isEnabled !== false && !item.deletedAt)
+      .sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder))
+    this.setData({ pendingInstances, quickTemplates })
+  },
+
+  applyPendingTemplate() {
+    const template = wx.getStorageSync('tinyBookPro.pendingTemplate')
+    if (!template) return
+    const apply = () => {
+      const categoryGroups = this.data.categoryGroups
+      const categories = categoryGroups[template.type] || []
+      if (template.categoryId && !categories.some((item) => item._id === template.categoryId)) {
+        wx.showToast({ title: '模板分类已停用，请先修改模板', icon: 'none' })
+        return
+      }
+      const category = categories.find((item) => item._id === template.categoryId) || categories[0]
+      if (!category) return
+      this.setData({
+        formDirty: true,
+        'form.type': template.type,
+        'form.amount': template.amount === '' ? '' : String(template.amount),
+        'form.categoryId': category._id,
+        'form.categoryName': category.name,
+        'form.date': formatDate(),
+        'form.remark': template.remark || '',
+        categories
+      }, () => {
+        this.setData({ remarkLength: validation.countCharacters(template.remark || '') })
+        this.refreshCategoryBudgetHint()
+      })
+    }
+    const hasContent = this.data.formDirty || this.data.form.amount || this.data.form.remark
+    wx.removeStorageSync('tinyBookPro.pendingTemplate')
+    if (!hasContent) {
+      apply()
+      return
+    }
+    wx.showModal({
+      title: '应用快捷模板',
+      content: '当前表单已有内容，应用模板会替换这些内容。',
+      success: (result) => { if (result.confirm) apply() }
+    })
   },
 
   refresh() {
@@ -127,13 +193,49 @@ Page({
         iconKey: 'other',
         colorKey: 'gray'
       })
+      const categoryBudget = storage.getCategoryBudgets().find((budget) => (
+        budget.month === selectedMonth
+        && budget.categoryId === item.categoryId
+        && !budget.deletedAt
+      ))
+      const budgetAmount = categoryBudget ? Number(categoryBudget.amount || 0) : 0
+      const budgetRatio = budgetAmount ? Number(item.amount || 0) / budgetAmount : 0
       return {
         ...item,
         iconPath: category.iconPath,
         foreground: category.foreground,
-        background: category.background
+        background: category.background,
+        hasBudget: Boolean(categoryBudget),
+        budgetAmountText: budgetAmount ? stats.formatMoney(budgetAmount) : '',
+        budgetUsedText: budgetAmount ? stats.formatMoney(item.amount) : '',
+        budgetRemainingText: budgetAmount ? stats.formatMoney(budgetAmount - Number(item.amount || 0)) : '',
+        budgetProgressPercent: budgetAmount ? Math.min(100, Math.round(budgetRatio * 100)) : 0,
+        budgetStatus: budgetRatio > 1 ? 'over' : (budgetRatio >= 0.8 ? 'warning' : 'normal')
       }
     })
+    const monthCategoryIds = new Set(monthCategories.map((item) => item.categoryId))
+    storage.getCategoryBudgets()
+      .filter((budget) => budget.month === selectedMonth && !budget.deletedAt && !monthCategoryIds.has(budget.categoryId))
+      .forEach((budget) => {
+        const category = categoryMap[budget.categoryId]
+        if (!category || category.type !== RECORD_TYPES.EXPENSE) return
+        monthCategories.push({
+          categoryId: budget.categoryId,
+          category: category.name,
+          amount: 0,
+          amountText: '0.00',
+          percent: 0,
+          iconPath: category.iconPath,
+          foreground: category.foreground,
+          background: category.background,
+          hasBudget: true,
+          budgetAmountText: stats.formatMoney(budget.amount),
+          budgetUsedText: '0.00',
+          budgetRemainingText: stats.formatMoney(budget.amount),
+          budgetProgressPercent: 0,
+          budgetStatus: 'normal'
+        })
+      })
     const displayMonthStats = {
       ...monthStats,
       categories: monthCategories,
@@ -169,8 +271,51 @@ Page({
       monthStats: displayMonthStats,
       previousMonthStats,
       monthComparison: this.buildMonthComparison(monthStats, previousMonthStats),
-      budgetState
+      budgetState,
+      ...this.getCategoryBudgetHintState(activeRecords)
     })
+  },
+
+  getCategoryBudgetHintState(records) {
+    const categoryBudgetHint = this.buildCategoryBudgetHint(records)
+    return {
+      categoryBudgetHint,
+      showCategoryBudgetHint: Boolean(categoryBudgetHint)
+    }
+  },
+
+  buildCategoryBudgetHint(records = storage.getActiveRecords()) {
+    const form = this.data.form
+    const currentMonth = this.data.currentMonth || formatMonth()
+    const entryAmount = Number(form.amount)
+    if (form.type !== RECORD_TYPES.EXPENSE || String(form.date || '').slice(0, 7) !== currentMonth) {
+      return null
+    }
+    if (validation.validateAmount(form.amount) || entryAmount <= 0) return null
+    const budget = storage.getCategoryBudgets().find((item) => (
+      item.month === currentMonth
+      && item.categoryId === form.categoryId
+      && !item.deletedAt
+    ))
+    if (!budget) return null
+    const amount = Number(budget.amount || 0)
+    const used = (records || [])
+      .filter((item) => item.type === RECORD_TYPES.EXPENSE && item.date.slice(0, 7) === currentMonth && item.categoryId === form.categoryId)
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+    const projectedUsed = used + entryAmount
+    const ratio = amount ? projectedUsed / amount : 0
+    return {
+      categoryName: form.categoryName,
+      amountText: stats.formatMoney(amount),
+      projectedUsedText: stats.formatMoney(projectedUsed),
+      projectedRemainingText: stats.formatMoney(amount - projectedUsed),
+      status: ratio > 1 ? 'over' : (ratio >= 0.8 ? 'warning' : 'normal'),
+      message: ratio > 1 ? '记账后超支' : (ratio >= 0.8 ? '记账后接近预算' : '记账后正常')
+    }
+  },
+
+  refreshCategoryBudgetHint() {
+    this.setData(this.getCategoryBudgetHintState())
   },
 
   buildMonthComparison(current, previous) {
@@ -199,27 +344,38 @@ Page({
       'form.categoryId': categories[0]._id,
       'form.categoryName': categories[0].name
     })
+    this.setData({ formDirty: true }, () => this.refreshCategoryBudgetHint())
   },
 
   onAmountInput(event) {
     this.setData({
+      formDirty: true,
       'form.amount': event.detail.value
-    })
+    }, () => this.refreshCategoryBudgetHint())
+  },
+
+  onQuickTemplateTap(event) {
+    const template = this.data.quickTemplates.find((item) => item.clientId === event.currentTarget.dataset.id)
+    if (!template) return
+    wx.setStorageSync('tinyBookPro.pendingTemplate', template)
+    this.applyPendingTemplate()
   },
 
   onCategoryChange(event) {
     const index = Number(event.detail.value)
     const category = this.data.categories[index]
     this.setData({
+      formDirty: true,
       'form.categoryId': category._id,
       'form.categoryName': category.name
-    })
+    }, () => this.refreshCategoryBudgetHint())
   },
 
   onDateChange(event) {
     this.setData({
+      formDirty: true,
       'form.date': event.detail.value
-    })
+    }, () => this.refreshCategoryBudgetHint())
   },
 
   onRemarkInput(event) {
@@ -229,6 +385,7 @@ Page({
       wx.showToast({ title: `备注最多 ${validation.MAX_REMARK_LENGTH} 个字符`, icon: 'none' })
     }
     this.setData({
+      formDirty: true,
       'form.remark': remark,
       remarkLength
     })
@@ -267,7 +424,8 @@ Page({
       'form.amount': '',
       'form.remark': '',
       'form.date': formatDate(),
-      remarkLength: 0
+      remarkLength: 0,
+      formDirty: false
     })
     this.refresh()
   },
@@ -431,6 +589,14 @@ Page({
     wx.switchTab({
       url: '/pages/profile/index'
     })
+  },
+
+  goRecurring() {
+    wx.navigateTo({ url: '/pages/recurring/index' })
+  },
+
+  goAnnual() {
+    wx.navigateTo({ url: '/pages/annual/index' })
   },
 
   onShareAppMessage() {

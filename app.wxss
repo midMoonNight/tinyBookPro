@@ -123,6 +123,16 @@ button {
   color: #ff3b30;
 }
 
+.field-hint {
+  margin-top: 8rpx;
+  color: #8e8e93;
+  font-size: 21rpx;
+}
+
+.field-hint.error {
+  color: #ff3b30;
+}
+
 .tag {
   display: inline-flex;
   align-items: center;

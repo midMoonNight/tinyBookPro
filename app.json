@@ -4,7 +4,11 @@
     "pages/profile/index",
     "pages/records/index",
     "pages/categories/index",
-    "pages/export/index"
+    "pages/export/index",
+    "pages/templates/index",
+    "pages/recurring/index",
+    "pages/category-budgets/index",
+    "pages/annual/index"
   ],
   "window": {
     "navigationBarTitleText": "极简记账本 Pro",

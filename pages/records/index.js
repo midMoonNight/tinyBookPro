@@ -39,7 +39,8 @@ Page({
     editDirty: false,
     editForm: null,
     editCategories: [],
-    editRemarkLength: 0
+    editRemarkLength: 0,
+    allowAnnualRange: false
   },
 
   onLoad(options) {
@@ -47,15 +48,18 @@ Page({
     const defaultRange = getMonthRange(month)
     const requestedStartDate = options.startDate || defaultRange.start
     const requestedEndDate = options.endDate || defaultRange.end
-    const range = isDateRangeValid(requestedStartDate, requestedEndDate)
+    const range = options.annual === '1'
       ? { start: requestedStartDate, end: requestedEndDate }
-      : defaultRange
+      : (isDateRangeValid(requestedStartDate, requestedEndDate)
+        ? { start: requestedStartDate, end: requestedEndDate }
+        : defaultRange)
     this.setData({
       'filters.startDate': range.start,
       'filters.endDate': range.end,
       'filters.type': options.type || '',
       'filters.categoryId': options.categoryId || '',
-      dateRangeError: ''
+      dateRangeError: '',
+      allowAnnualRange: options.annual === '1'
     })
     this.loadCategories().then(() => this.reload())
   },
@@ -112,7 +116,9 @@ Page({
   },
 
   async reload() {
-    const dateRangeError = getDateRangeError(this.data.filters.startDate, this.data.filters.endDate)
+    const dateRangeError = this.data.allowAnnualRange
+      ? (this.data.filters.startDate > this.data.filters.endDate ? '开始日期不能晚于结束日期' : '')
+      : getDateRangeError(this.data.filters.startDate, this.data.filters.endDate)
     if (dateRangeError) {
       this.setData({ dateRangeError })
       return
@@ -134,7 +140,10 @@ Page({
   },
 
   async loadMore(loadVersion = this._loadVersion || 0) {
-    if (getDateRangeError(this.data.filters.startDate, this.data.filters.endDate)) {
+    const rangeError = this.data.allowAnnualRange
+      ? (this.data.filters.startDate > this.data.filters.endDate ? '开始日期不能晚于结束日期' : '')
+      : getDateRangeError(this.data.filters.startDate, this.data.filters.endDate)
+    if (rangeError) {
       return
     }
     if ((this.data.loading && this._loadingVersion === loadVersion) || !this.data.hasMore) {
@@ -233,7 +242,9 @@ Page({
   onStartDateChange(event) {
     const startDate = event.detail.value
     const endDate = this.data.filters.endDate
-    const dateRangeError = getDateRangeError(startDate, endDate)
+    const dateRangeError = this.data.allowAnnualRange
+      ? (startDate > endDate ? '开始日期不能晚于结束日期' : '')
+      : getDateRangeError(startDate, endDate)
     this.setData({
       'filters.range': 'custom',
       'filters.startDate': startDate,
@@ -246,7 +257,9 @@ Page({
   onEndDateChange(event) {
     const startDate = this.data.filters.startDate
     const endDate = event.detail.value
-    const dateRangeError = getDateRangeError(startDate, endDate)
+    const dateRangeError = this.data.allowAnnualRange
+      ? (startDate > endDate ? '开始日期不能晚于结束日期' : '')
+      : getDateRangeError(startDate, endDate)
     this.setData({
       'filters.range': 'custom',
       'filters.endDate': endDate,

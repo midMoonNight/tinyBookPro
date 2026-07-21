@@ -8,6 +8,10 @@ const BUDGETS_COLLECTION = 'budgets'
 const SYSTEM_CATEGORIES_COLLECTION = 'categories'
 const USER_CATEGORIES_COLLECTION = 'user_categories'
 const USERS_COLLECTION = 'users'
+const QUICK_TEMPLATES_COLLECTION = 'quick_templates'
+const RECURRING_PLANS_COLLECTION = 'recurring_plans'
+const RECURRING_INSTANCES_COLLECTION = 'recurring_instances'
+const CATEGORY_BUDGETS_COLLECTION = 'category_budgets'
 const CLOUD_QUERY_LIMIT = 20
 
 function getDefaultCategories() {
@@ -311,8 +315,12 @@ async function syncLocalToCloud(user) {
   }
 
   const db = wx.cloud.database()
-  const records = storage.getRecords()
+  const records = storage.getRecords().filter((record) => record.syncStatus !== 'synced')
   const budgets = storage.getBudgets()
+  const quickTemplates = storage.getQuickTemplates().filter((item) => item.syncStatus === 'pending')
+  const recurringPlans = storage.getRecurringPlans().filter((item) => item.syncStatus === 'pending')
+  const recurringInstances = storage.getRecurringInstances().filter((item) => item.syncStatus === 'pending')
+  const categoryBudgets = storage.getCategoryBudgets().filter((item) => item.syncStatus === 'pending')
   const tasks = []
 
   records.forEach((record) => {
@@ -322,9 +330,14 @@ async function syncLocalToCloud(user) {
   Object.keys(budgets).forEach((month) => {
     tasks.push(upsertBudget(db, budgets[month], user))
   })
+  quickTemplates.forEach((item) => tasks.push(upsertV3Document(db, QUICK_TEMPLATES_COLLECTION, item, user)))
+  recurringPlans.forEach((item) => tasks.push(upsertV3Document(db, RECURRING_PLANS_COLLECTION, item, user)))
+  recurringInstances.forEach((item) => tasks.push(upsertV3Document(db, RECURRING_INSTANCES_COLLECTION, item, user)))
+  categoryBudgets.forEach((item) => tasks.push(upsertV3Document(db, CATEGORY_BUDGETS_COLLECTION, item, user)))
 
   await Promise.all(tasks)
   storage.setAllRecordsSyncStatus('synced')
+  markConfigsSynced()
   const now = new Date().toISOString()
   storage.setLastSyncAt(now)
 
@@ -333,6 +346,138 @@ async function syncLocalToCloud(user) {
     lastSyncAt: now,
     message: '已同步到云端'
   }
+}
+
+function markConfigsSynced() {
+  storage.setQuickTemplates(storage.getQuickTemplates().map((item) => ({ ...item, syncStatus: 'synced' })))
+  storage.setRecurringPlans(storage.getRecurringPlans().map((item) => ({ ...item, syncStatus: 'synced' })))
+  storage.setRecurringInstances(storage.getRecurringInstances().map((item) => ({ ...item, syncStatus: 'synced' })))
+  storage.setCategoryBudgets(storage.getCategoryBudgets().map((item) => ({ ...item, syncStatus: 'synced' })))
+}
+
+function getV3Collection(type) {
+  return {
+    template: QUICK_TEMPLATES_COLLECTION,
+    plan: RECURRING_PLANS_COLLECTION,
+    instance: RECURRING_INSTANCES_COLLECTION,
+    categoryBudget: CATEGORY_BUDGETS_COLLECTION
+  }[type]
+}
+
+function getV3Items(type) {
+  return {
+    template: storage.getQuickTemplates,
+    plan: storage.getRecurringPlans,
+    instance: storage.getRecurringInstances,
+    categoryBudget: storage.getCategoryBudgets
+  }[type].call(storage)
+}
+
+function setV3Items(type, items) {
+  return {
+    template: storage.setQuickTemplates,
+    plan: storage.setRecurringPlans,
+    instance: storage.setRecurringInstances,
+    categoryBudget: storage.setCategoryBudgets
+  }[type].call(storage, items)
+}
+
+function upsertV3Local(type, item) {
+  return {
+    template: storage.upsertQuickTemplate,
+    plan: storage.upsertRecurringPlan,
+    instance: storage.upsertRecurringInstance,
+    categoryBudget: storage.upsertCategoryBudget
+  }[type].call(storage, { ...item, syncStatus: 'pending' })
+}
+
+async function upsertV3Document(db, collectionName, item, user) {
+  const result = await db.collection(collectionName).where({
+    appKey: APP_KEY,
+    userId: user.userId,
+    clientId: item.clientId
+  }).get()
+  const { _id, _openid, id, syncStatus, hasEndDate, ...document } = item
+  const data = {
+    ...document,
+    appKey: APP_KEY,
+    userId: user.userId
+  }
+  if (result.data && result.data[0]) {
+    if (result.data[0].deletedAt && !item.deletedAt) {
+      data.deletedAt = db.command.remove()
+    }
+    await db.collection(collectionName).doc(result.data[0]._id).update({ data })
+    return
+  }
+  await db.collection(collectionName).add({ data })
+}
+
+async function saveV3Item(type, item, user) {
+  const next = upsertV3Local(type, item)
+  if (!isCloudReady() || !user || !user.isCloudUser) {
+    return { item: next, cloudSynced: false }
+  }
+  try {
+    await upsertV3Document(wx.cloud.database(), getV3Collection(type), next, user)
+    setV3Items(type, getV3Items(type).map((current) => current.clientId === next.clientId
+      ? { ...current, syncStatus: 'synced' }
+      : current))
+    storage.setLastSyncAt(new Date().toISOString())
+    return { item: next, cloudSynced: true }
+  } catch (error) {
+    console.error(`[cloud] ${type} sync failed`, error)
+    return { item: next, cloudSynced: false }
+  }
+}
+
+async function fetchV3Data(user) {
+  if (!isCloudReady() || !user || !user.isCloudUser) {
+    return { fetched: false }
+  }
+  try {
+    const db = wx.cloud.database()
+    const types = ['template', 'plan', 'instance', 'categoryBudget']
+    const results = await Promise.all(types.map((type) => fetchAll(db.collection(getV3Collection(type)).where({
+      appKey: APP_KEY,
+      userId: user.userId
+    }))))
+    types.forEach((type, index) => {
+      const localPending = getV3Items(type).filter((item) => item.syncStatus === 'pending')
+      setV3Items(type, [...localPending, ...results[index].map((item) => ({ ...item, id: item._id, syncStatus: 'synced' }))])
+    })
+    return { fetched: true }
+  } catch (error) {
+    console.warn('[cloud] V3 data query failed, using local cache', error)
+    return { fetched: false }
+  }
+}
+
+async function updateV3Item(type, clientId, changes, user) {
+  const update = {
+    template: storage.updateQuickTemplate,
+    plan: storage.updateRecurringPlan,
+    instance: storage.updateRecurringInstance,
+    categoryBudget: storage.updateCategoryBudget
+  }[type]
+  if (!update) throw new Error('unsupported V3 item')
+  const item = update(clientId, changes)
+  if (!item) throw new Error('V3 item not found')
+  if (!isCloudReady() || !user || !user.isCloudUser) return { item, cloudSynced: false }
+  try {
+    await upsertV3Document(wx.cloud.database(), getV3Collection(type), item, user)
+    setV3Items(type, getV3Items(type).map((current) => current.clientId === clientId
+      ? { ...current, syncStatus: 'synced' }
+      : current))
+    return { item, cloudSynced: true }
+  } catch (error) {
+    console.error(`[cloud] ${type} update failed`, error)
+    return { item, cloudSynced: false }
+  }
+}
+
+async function deleteV3Item(type, clientId, user) {
+  return updateV3Item(type, clientId, { deletedAt: new Date().toISOString() }, user)
 }
 
 async function createRecord(record, user) {
@@ -405,7 +550,8 @@ async function fetchRecordsPage(user, filters = {}) {
     return {
       records: records.slice(offset, offset + pageSize),
       hasMore: offset + pageSize < records.length,
-      nextOffset: offset + pageSize
+      nextOffset: offset + pageSize,
+      fromCache: true
     }
   }
 
@@ -454,7 +600,8 @@ async function fetchRecordsPage(user, filters = {}) {
     return {
       records,
       hasMore: !exhausted,
-      nextOffset: rawOffset
+      nextOffset: rawOffset,
+      fromCache: false
     }
   } catch (error) {
     console.warn('[cloud] records query failed, using local cache', error)
@@ -462,7 +609,8 @@ async function fetchRecordsPage(user, filters = {}) {
     return {
       records: records.slice(offset, offset + pageSize),
       hasMore: offset + pageSize < records.length,
-      nextOffset: offset + pageSize
+      nextOffset: offset + pageSize,
+      fromCache: true
     }
   }
 }
@@ -482,6 +630,22 @@ async function fetchRecordsForMonth(user, month) {
     all.push(...result.records)
     hasMore = result.hasMore
     offset = result.nextOffset
+  }
+  return all
+}
+
+async function fetchAllRecords(user) {
+  const all = []
+  let offset = 0
+  let hasMore = true
+  while (hasMore) {
+    const result = await fetchRecordsPage(user, {
+      pageSize: 50,
+      offset
+    })
+    all.push(...result.records)
+    offset = result.nextOffset
+    hasMore = result.hasMore
   }
   return all
 }
@@ -687,6 +851,10 @@ async function upsertBudget(db, budget, user) {
   }
 
   if (result.data && result.data[0]) {
+    const remote = result.data[0]
+    if (remote.updatedAt && budget.updatedAt && remote.updatedAt > budget.updatedAt) {
+      return
+    }
     const { _id } = result.data[0]
     await db.collection(BUDGETS_COLLECTION).doc(_id).update({
       data
@@ -731,15 +899,20 @@ module.exports = {
   createRecord,
   deleteRecord,
   fetchCategories,
+  fetchAllRecords,
   fetchCurrentMonthFromCloud,
   fetchRecentRecords,
   fetchRecordsForMonth,
   fetchRecordsPage,
+  fetchV3Data,
   login,
   saveCategory,
   saveBudget,
+  saveV3Item,
   setCategoryEnabled,
   syncLocalToCloud,
+  deleteV3Item,
+  updateV3Item,
   updateRecord,
   updateUserProfile
 }

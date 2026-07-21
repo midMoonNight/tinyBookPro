@@ -22,7 +22,7 @@
   <view wx:if="{{editorVisible}}" class="editor-mask" bindtap="closeEditor">
     <view class="editor-sheet" catchtap="stopPropagation">
       <view class="editor-head"><view class="editor-title">{{editor._id ? '编辑分类' : '新增分类'}}</view><view class="editor-close" bindtap="closeEditor">×</view></view>
-      <view class="field"><text class="field-label">名称</text><input class="input" maxlength="10" placeholder="输入分类名称" value="{{editor.name}}" bindinput="onNameInput" /></view>
+      <view class="field"><text class="field-label">名称</text><input class="input {{nameLength > 10 || nameInvalid ? 'input-error' : ''}}" maxlength="-1" placeholder="输入分类名称" value="{{editor.name}}" bindinput="onNameInput" /><view class="field-count {{nameLength > 10 ? 'over' : ''}}">{{nameLength}}/10</view><view class="field-hint {{nameInvalid ? 'error' : ''}}">仅支持中文、英文、数字和空格</view></view>
       <view class="field-label section-label">图标</view>
       <scroll-view scroll-y class="icon-grid-wrap"><view class="icon-grid"><view wx:for="{{icons}}" wx:key="key" class="icon-choice {{editor.iconKey === item.key ? 'selected' : ''}}" data-key="{{item.key}}" bindtap="selectIcon"><image src="{{item.path}}" mode="aspectFit" /><text>{{item.name}}</text></view></view></scroll-view>
       <view class="field-label section-label">颜色</view>

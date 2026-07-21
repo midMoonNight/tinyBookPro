@@ -90,6 +90,7 @@ Page({
       user = storage.getUser()
       await this.syncNow(user, true)
       await this.fetchCloudData(user)
+      await sync.fetchV3Data(user)
     } catch (error) {
       console.error('[cloud] login flow failed', error)
       wx.showToast({
@@ -350,6 +351,18 @@ Page({
       return
     }
     wx.navigateTo({ url: '/pages/export/index' })
+  },
+
+  goTemplates() {
+    wx.navigateTo({ url: '/pages/templates/index' })
+  },
+
+  goRecurring() {
+    wx.navigateTo({ url: '/pages/recurring/index' })
+  },
+
+  goCategoryBudgets() {
+    wx.navigateTo({ url: '/pages/category-budgets/index' })
   },
 
   onShareAppMessage() {

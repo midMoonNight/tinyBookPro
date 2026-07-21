@@ -5,6 +5,10 @@ const { formatMonth } = require('./date')
 const KEYS = {
   RECORDS: 'tinyBookPro.records',
   BUDGETS: 'tinyBookPro.budgets',
+  QUICK_TEMPLATES: 'tinyBookPro.quickTemplates',
+  RECURRING_PLANS: 'tinyBookPro.recurringPlans',
+  RECURRING_INSTANCES: 'tinyBookPro.recurringInstances',
+  CATEGORY_BUDGETS: 'tinyBookPro.categoryBudgets',
   USER: 'tinyBookPro.user',
   LAST_SYNC_AT: 'tinyBookPro.lastSyncAt'
 }
@@ -16,6 +20,85 @@ function getArray(key) {
 function setArray(key, value) {
   wx.setStorageSync(key, value)
 }
+
+function normalizeConfig(item, type) {
+  const now = new Date().toISOString()
+  const normalized = {
+    ...item,
+    clientId: item.clientId || item.id || item._id || createClientId(),
+    syncStatus: item.syncStatus || 'synced',
+    createdAt: item.createdAt || now,
+    updatedAt: item.updatedAt || now
+  }
+  if (type === 'template') {
+    normalized.amount = item.amount === '' || item.amount === null || item.amount === undefined ? '' : Number(item.amount)
+    normalized.sortOrder = Number(item.sortOrder || Date.now())
+    normalized.isEnabled = item.isEnabled !== false
+  }
+  if (type === 'plan') {
+    normalized.amount = Number(item.amount || 0)
+    normalized.isEnabled = item.isEnabled !== false
+    normalized.activeFromDate = item.activeFromDate || normalized.startDate
+  }
+  if (type === 'instance') {
+    normalized.status = item.status || 'pending'
+    normalized.clientId = item.clientId || `${item.planClientId}_${item.occurrenceDate}`
+  }
+  if (type === 'categoryBudget') {
+    normalized.amount = Number(item.amount || 0)
+  }
+  return normalized
+}
+
+function getConfigs(key, type) {
+  return getArray(key).map((item) => normalizeConfig(item, type))
+}
+
+function setConfigs(key, type, items) {
+  const map = {}
+  ;(items || []).forEach((item) => {
+    const normalized = normalizeConfig(item, type)
+    const existing = map[normalized.clientId]
+    if (!existing || existing.syncStatus !== 'pending' && (normalized.syncStatus === 'pending' || normalized.updatedAt >= existing.updatedAt)) {
+      map[normalized.clientId] = normalized
+    }
+  })
+  setArray(key, Object.values(map))
+}
+
+function upsertConfig(key, type, item) {
+  const next = normalizeConfig(item, type)
+  const items = getConfigs(key, type).filter((current) => current.clientId !== next.clientId)
+  items.push(next)
+  setConfigs(key, type, items)
+  return next
+}
+
+function updateConfig(key, type, clientId, changes) {
+  const current = getConfigs(key, type).find((item) => item.clientId === clientId)
+  if (!current) return null
+  return upsertConfig(key, type, { ...current, ...changes, clientId, updatedAt: new Date().toISOString(), syncStatus: 'pending' })
+}
+
+function getQuickTemplates() { return getConfigs(KEYS.QUICK_TEMPLATES, 'template') }
+function setQuickTemplates(items) { setConfigs(KEYS.QUICK_TEMPLATES, 'template', items) }
+function upsertQuickTemplate(item) { return upsertConfig(KEYS.QUICK_TEMPLATES, 'template', item) }
+function updateQuickTemplate(clientId, changes) { return updateConfig(KEYS.QUICK_TEMPLATES, 'template', clientId, changes) }
+
+function getRecurringPlans() { return getConfigs(KEYS.RECURRING_PLANS, 'plan') }
+function setRecurringPlans(items) { setConfigs(KEYS.RECURRING_PLANS, 'plan', items) }
+function upsertRecurringPlan(item) { return upsertConfig(KEYS.RECURRING_PLANS, 'plan', item) }
+function updateRecurringPlan(clientId, changes) { return updateConfig(KEYS.RECURRING_PLANS, 'plan', clientId, changes) }
+
+function getRecurringInstances() { return getConfigs(KEYS.RECURRING_INSTANCES, 'instance') }
+function setRecurringInstances(items) { setConfigs(KEYS.RECURRING_INSTANCES, 'instance', items) }
+function upsertRecurringInstance(item) { return upsertConfig(KEYS.RECURRING_INSTANCES, 'instance', item) }
+function updateRecurringInstance(clientId, changes) { return updateConfig(KEYS.RECURRING_INSTANCES, 'instance', clientId, changes) }
+
+function getCategoryBudgets() { return getConfigs(KEYS.CATEGORY_BUDGETS, 'categoryBudget') }
+function setCategoryBudgets(items) { setConfigs(KEYS.CATEGORY_BUDGETS, 'categoryBudget', items) }
+function upsertCategoryBudget(item) { return upsertConfig(KEYS.CATEGORY_BUDGETS, 'categoryBudget', item) }
+function updateCategoryBudget(clientId, changes) { return updateConfig(KEYS.CATEGORY_BUDGETS, 'categoryBudget', clientId, changes) }
 
 function getRecords() {
   return getArray(KEYS.RECORDS)
@@ -51,6 +134,10 @@ function getActiveRecords() {
 }
 
 function addRecord(record) {
+  const existing = record.clientId && getRecords().find((item) => item.clientId === record.clientId)
+  if (existing) {
+    return existing
+  }
   const now = new Date().toISOString()
   const nextRecord = {
     ...record,
@@ -199,7 +286,7 @@ function setLastSyncAt(value) {
   wx.setStorageSync(KEYS.LAST_SYNC_AT, value)
 }
 
-function replaceCachedData({ records, budgets, lastSyncAt }) {
+function replaceCachedData({ records, budgets, quickTemplates, recurringPlans, recurringInstances, categoryBudgets, lastSyncAt }) {
   if (Array.isArray(records)) {
     setRecords(records)
   }
@@ -207,6 +294,11 @@ function replaceCachedData({ records, budgets, lastSyncAt }) {
   if (budgets) {
     wx.setStorageSync(KEYS.BUDGETS, budgets)
   }
+
+  if (Array.isArray(quickTemplates)) setQuickTemplates(quickTemplates)
+  if (Array.isArray(recurringPlans)) setRecurringPlans(recurringPlans)
+  if (Array.isArray(recurringInstances)) setRecurringInstances(recurringInstances)
+  if (Array.isArray(categoryBudgets)) setCategoryBudgets(categoryBudgets)
 
   if (lastSyncAt) {
     setLastSyncAt(lastSyncAt)
@@ -220,20 +312,36 @@ module.exports = {
   ensureRecordClientIds,
   getActiveRecords,
   getBudget,
+  getCategoryBudgets,
   getBudgets,
   getLastSyncAt,
   getRecords,
+  getQuickTemplates,
+  getRecurringInstances,
+  getRecurringPlans,
   getUser,
   mergeRecords,
   normalizeRecord,
   replaceCachedData,
   setAllRecordsSyncStatus,
   setBudget,
+  setCategoryBudgets,
+  setQuickTemplates,
+  setRecurringInstances,
+  setRecurringPlans,
   setLastSyncAt,
   setRecordSyncStatus,
   setRecords,
   setUser,
   softDeleteRecord,
+  updateCategoryBudget,
+  updateQuickTemplate,
+  updateRecurringInstance,
+  updateRecurringPlan,
   updateRecord,
-  updateUserProfile
+  updateUserProfile,
+  upsertCategoryBudget,
+  upsertQuickTemplate,
+  upsertRecurringInstance,
+  upsertRecurringPlan
 }

@@ -23,11 +23,19 @@ function validateRemark(value) {
     : ''
 }
 
+function validateNameCharacters(value, label = '名称') {
+  const text = String(value || '')
+  return text && !/^[\u3400-\u4dbf\u4e00-\u9fffA-Za-z0-9 ]+$/.test(text)
+    ? `${label}仅支持中文、英文、数字和空格`
+    : ''
+}
+
 module.exports = {
   MAX_AMOUNT,
   MAX_NICKNAME_LENGTH,
   MAX_REMARK_LENGTH,
   countCharacters,
   validateAmount,
+  validateNameCharacters,
   validateRemark
 }

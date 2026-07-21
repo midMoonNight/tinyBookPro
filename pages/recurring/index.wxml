@@ -1,0 +1,135 @@
+<view class="page">
+  <view wx:if="{{pendingInstances.length > 0}}" class="section panel">
+    <view class="section-title">本期待记账</view>
+    <view wx:for="{{pendingInstances}}" wx:key="clientId" class="instance-item">
+      <view class="instance-main">
+        <view class="instance-title">{{item.plan.name}}</view>
+        <view class="instance-detail">{{item.occurrenceDate}} · {{item.plan.type === 'income' ? '收入' : '支出'}} · ¥{{item.plan.amount}}</view>
+      </view>
+      <view class="instance-actions">
+        <view data-id="{{item.clientId}}" class="{{confirmingInstanceId === item.clientId ? 'disabled-action' : ''}}" bindtap="confirmInstance">{{confirmingInstanceId === item.clientId ? '处理中' : '直接记账'}}</view>
+        <view data-id="{{item.clientId}}" bindtap="openInstanceEdit">修改后记账</view>
+        <view data-id="{{item.clientId}}" class="muted-action" bindtap="skipInstance">跳过本期</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{processedInstances.length > 0}}" class="section panel history-list">
+    <view class="section-title">处理记录</view>
+    <view wx:for="{{processedInstances}}" wx:key="clientId" class="history-item">
+      <view class="instance-main">
+        <view class="instance-title">{{item.plan.name}}</view>
+        <view class="instance-detail">{{item.occurrenceDate}} · {{item.plan.type === 'income' ? '收入' : '支出'}} · ¥{{item.plan.amount}}</view>
+      </view>
+      <text class="history-status {{item.status}}">{{item.status === 'confirmed' ? '已记账' : '已跳过'}}</text>
+    </view>
+  </view>
+
+  <view class="section panel plan-list">
+    <view class="section-title">周期计划</view>
+    <view wx:if="{{plans.length === 0}}" class="empty">还没有周期计划</view>
+    <view wx:for="{{plans}}" wx:key="clientId" class="plan-item {{item.isEnabled === false ? 'disabled' : ''}}">
+      <view class="plan-main">
+        <view class="plan-title">{{item.name}}</view>
+        <view class="plan-detail">{{item.type === 'income' ? '收入' : '支出'}} · {{item.categoryNameSnapshot}} · ¥{{item.amount}} · {{item.frequency === 'weekly' ? '每周' : (item.frequency === 'yearly' ? '每年' : '每月')}}</view>
+      </view>
+      <view class="plan-actions">
+        <view data-id="{{item.clientId}}" bindtap="openEdit">编辑</view>
+        <view data-id="{{item.clientId}}" bindtap="toggle">{{item.isEnabled === false ? '启用' : '停用'}}</view>
+        <view data-id="{{item.clientId}}" class="danger" bindtap="remove">删除</view>
+      </view>
+    </view>
+  </view>
+
+  <button class="primary-button" bindtap="openCreate">新增周期计划</button>
+
+  <view wx:if="{{instanceEditorVisible}}" class="mask" bindtap="closeInstanceEdit">
+    <view class="sheet" catchtap="stopPropagation">
+      <view class="sheet-head">
+        <text class="sheet-title">修改后记账</text>
+        <text class="close" bindtap="closeInstanceEdit">×</text>
+      </view>
+      <view class="field">
+        <text class="label">金额</text>
+        <input class="input" type="digit" value="{{instanceEditor.amount}}" bindinput="onInstanceAmountInput" />
+      </view>
+      <view class="field">
+        <text class="label">分类</text>
+        <picker range="{{categoryOptions}}" range-key="name" value="{{instanceCategoryIndex}}" bindchange="onInstanceCategoryChange">
+          <view class="input picker-value">{{instanceEditor.categoryNameSnapshot}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <text class="label">日期</text>
+        <picker mode="date" value="{{instanceEditor.date}}" bindchange="onInstanceDateChange">
+          <view class="input picker-value">{{instanceEditor.date}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <text class="label">备注</text>
+        <input class="input {{instanceRemarkLength > 40 ? 'input-error' : ''}}" maxlength="-1" value="{{instanceEditor.remark}}" bindinput="onInstanceRemarkInput" />
+        <view class="field-count {{instanceRemarkLength > 40 ? 'over' : ''}}">{{instanceRemarkLength}}/40</view>
+      </view>
+      <button class="primary-button save" loading="{{saving}}" bindtap="saveInstanceEdit">确认记账</button>
+    </view>
+  </view>
+
+  <view wx:if="{{editorVisible}}" class="mask" bindtap="closeEditor">
+    <view class="sheet" catchtap="stopPropagation">
+      <view class="sheet-head">
+        <text class="sheet-title">{{editor.clientId ? '编辑周期计划' : '新增周期计划'}}</text>
+        <text class="close" bindtap="closeEditor">×</text>
+      </view>
+      <view class="field">
+        <text class="label">名称</text>
+        <input class="input {{editorNameLength > 20 || editorNameInvalid ? 'input-error' : ''}}" maxlength="-1" value="{{editor.name}}" data-field="name" bindinput="onInput" placeholder="例如：每月房租" />
+        <view class="field-count {{editorNameLength > 20 ? 'over' : ''}}">{{editorNameLength}}/20</view>
+        <view class="field-hint {{editorNameInvalid ? 'error' : ''}}">仅支持中文、英文、数字和空格</view>
+      </view>
+      <view class="field">
+        <text class="label">类型</text>
+        <picker wx:if="{{!editor.clientId}}" range="{{typeOptions}}" value="{{editor.type === 'income' ? 1 : 0}}" bindchange="onTypeChange">
+          <view class="input picker-value">{{editor.type === 'income' ? '收入' : '支出'}}</view>
+        </picker>
+        <view wx:else class="input picker-value">{{editor.type === 'income' ? '收入' : '支出'}}</view>
+      </view>
+      <view class="field">
+        <text class="label">金额</text>
+        <input class="input" type="digit" value="{{editor.amount}}" data-field="amount" bindinput="onInput" />
+      </view>
+      <view class="field">
+        <text class="label">分类</text>
+        <picker range="{{categoryOptions}}" range-key="name" value="{{editorCategoryIndex}}" bindchange="onCategoryChange">
+          <view class="input picker-value">{{editor.categoryNameSnapshot}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <text class="label">备注</text>
+        <input class="input {{editorRemarkLength > 40 ? 'input-error' : ''}}" maxlength="-1" value="{{editor.remark}}" data-field="remark" bindinput="onInput" />
+        <view class="field-count {{editorRemarkLength > 40 ? 'over' : ''}}">{{editorRemarkLength}}/40</view>
+      </view>
+      <view class="field">
+        <text class="label">频率</text>
+        <picker range="{{frequencies}}" range-key="label" value="{{editor.frequency === 'weekly' ? 0 : (editor.frequency === 'yearly' ? 2 : 1)}}" bindchange="onFrequencyChange">
+          <view class="input picker-value">{{editor.frequency === 'weekly' ? '每周' : (editor.frequency === 'yearly' ? '每年' : '每月')}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <text class="label">周期开始日期</text>
+        <picker mode="date" value="{{editor.startDate}}" bindchange="onStartDateChange">
+          <view class="input picker-value">{{editor.startDate}}</view>
+        </picker>
+        <view class="field-hint">完成一个完整周期后生成任务，首期待记账日期为 {{firstOccurrenceDate}}</view>
+      </view>
+      <view class="field">
+        <text class="label">计划结束日期</text>
+        <switch checked="{{editor.hasEndDate}}" bindchange="onEndToggle" />
+        <picker wx:if="{{editor.hasEndDate}}" mode="date" value="{{editor.endDate}}" bindchange="onEndDateChange">
+          <view class="input picker-value">{{editor.endDate}}</view>
+        </picker>
+        <view wx:else class="muted">永不结束</view>
+      </view>
+      <button class="primary-button save" loading="{{saving}}" bindtap="save">保存计划</button>
+    </view>
+  </view>
+</view>

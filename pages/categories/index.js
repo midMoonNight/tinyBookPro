@@ -1,6 +1,7 @@
 const { CATEGORY_COLORS, CATEGORY_ICONS, RECORD_TYPES, decorateCategory } = require('../../utils/constants')
 const storage = require('../../utils/storage')
 const sync = require('../../utils/sync')
+const validation = require('../../utils/validation')
 
 Page({
   data: {
@@ -11,6 +12,8 @@ Page({
     colors: CATEGORY_COLORS,
     editorVisible: false,
     editor: null,
+    nameLength: 0,
+    nameInvalid: false,
     saving: false
   },
 
@@ -45,6 +48,8 @@ Page({
   openCreate() {
     this.setData({
       editorVisible: true,
+      nameLength: 0,
+      nameInvalid: false,
       editor: {
         type: this.data.activeType,
         name: '',
@@ -60,11 +65,24 @@ Page({
     if (!category || category.scope !== 'user') {
       return
     }
-    this.setData({ editorVisible: true, editor: { ...category } })
+    this.setData({
+      editorVisible: true,
+      editor: { ...category },
+      nameLength: validation.countCharacters(category.name),
+      nameInvalid: Boolean(validation.validateNameCharacters(category.name))
+    })
   },
 
   onNameInput(event) {
-    this.setData({ 'editor.name': event.detail.value })
+    const name = event.detail.value
+    const nameLength = validation.countCharacters(name)
+    const nameMessage = validation.validateNameCharacters(name, '分类名称')
+    if (this.data.nameLength <= 10 && nameLength > 10) {
+      wx.showToast({ title: '分类名称最多 10 个字符', icon: 'none' })
+    } else if (!this.data.nameInvalid && nameMessage) {
+      wx.showToast({ title: nameMessage, icon: 'none' })
+    }
+    this.setData({ 'editor.name': name, nameLength, nameInvalid: Boolean(nameMessage) })
   },
 
   selectIcon(event) {
@@ -89,9 +107,8 @@ Page({
     if (length < 1 || length > 10) {
       return { message: '分类名称需为 1-10 个字符' }
     }
-    if (/[\u0000-\u001f\u007f\u200b-\u200d\u2060\ufeff]/.test(normalized)) {
-      return { message: '分类名称包含不支持的字符' }
-    }
+    const nameMessage = validation.validateNameCharacters(normalized, '分类名称')
+    if (nameMessage) return { message: nameMessage }
     return { name: normalized }
   },
 

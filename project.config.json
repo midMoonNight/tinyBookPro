@@ -33,7 +33,12 @@
   "condition": {},
   "simulatorPluginLibVersion": {},
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "doc"
+      }
+    ],
     "include": []
   },
   "editorSetting": {}
